@@ -5,3 +5,4 @@ tensorflow==1.14
 pytest==6.2.1
 black==20.8b1
 flake8==3.8.4
+pre-commit==2.10.0
