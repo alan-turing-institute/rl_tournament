@@ -13,11 +13,13 @@ def test_simple_battle():
     """
 
     config_file_path = os.path.join(
+        os.path.dirname(__file__),
         "test_configs",
         "10x10_balanced.json",
     )
 
     video_file_path = os.path.join(
+        os.path.dirname(__file__),
         "test_outputs",
         "test_simple_battle%s.mp4"
         % str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
