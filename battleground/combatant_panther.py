@@ -8,28 +8,26 @@ Before running, set environment variable PLARKAICOMPS to point to the
 import os
 import json
 import logging
-logging.basicConfig()
-
 import pika
 
-from plark_game.classes.newgame import load_agent
 from combatant import Combatant
 
-
+logging.basicConfig()
 
 
 def run_panther(agent_path, agent_name, basic_agents_path):
     panther_agent = Combatant(agent_path, agent_name, basic_agents_path)
     connection = pika.BlockingConnection(
-        pika.ConnectionParameters(host='localhost')
+        pika.ConnectionParameters(host="localhost")
     )
 
     channel = connection.channel()
 
-    channel.queue_declare(queue='rpc_queue_panther')
+    channel.queue_declare(queue="rpc_queue_panther")
     channel.basic_qos(prefetch_count=1)
-    channel.basic_consume(queue='rpc_queue_panther',
-                          on_message_callback=panther_agent.get_action)
+    channel.basic_consume(
+        queue="rpc_queue_panther", on_message_callback=panther_agent.get_action
+    )
 
     print(" [x] PANTHER Awaiting RPC requests")
     channel.start_consuming()
@@ -37,8 +35,13 @@ def run_panther(agent_path, agent_name, basic_agents_path):
 
 if __name__ == "__main__":
 
-    if not "PLARKAICOMPS" in os.environ.keys():
-        raise RuntimeError("Please set environment var PLARKAICOMPS to point to the plark_ai_public/ directory")
+    if "PLARKAICOMPS" not in os.environ.keys():
+        raise RuntimeError(
+            """
+            Please set environment var PLARKAICOMPS to point
+            to the plark_ai_public/ directory
+            """
+        )
 
     config_file = "tests/test_configs/10x10_balanced.json"
     if not os.path.exists(config_file):
@@ -52,7 +55,7 @@ if __name__ == "__main__":
             "plark-game",
             "plark_game",
             "agents",
-            "basic"
-            )
+            "basic",
+        )
     )
     run_panther(agent_path, agent_name, basic_agents_path)

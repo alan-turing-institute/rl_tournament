@@ -13,7 +13,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-
 def load_combatant(
     agent_path, agent_name, basic_agents_path, game=None, **kwargs
 ):
@@ -85,10 +84,12 @@ def load_combatant(
 
 
 class Combatant:
-
-    def __init__(self, agent_path, agent_name, basic_agents_path, game=None, **kwargs):
-        self.agent = load_combatant(agent_path, agent_name, basic_agents_path, game=None, **kwargs)
-
+    def __init__(
+        self, agent_path, agent_name, basic_agents_path, game=None, **kwargs
+    ):
+        self.agent = load_combatant(
+            agent_path, agent_name, basic_agents_path, game=None, **kwargs
+        )
 
     def get_action(self, ch, method, props, body):
 
@@ -97,10 +98,13 @@ class Combatant:
         deserialized_state = deserialize_state(state)
         # ask the agent for the action, given this state
         response = self.agent.getAction(deserialized_state)
-        ch.basic_publish(exchange='',
-                         routing_key=props.reply_to,
-                         properties=pika.BasicProperties(correlation_id = \
-                                                         props.correlation_id),
-                         body=str(response))
+        ch.basic_publish(
+            exchange="",
+            routing_key=props.reply_to,
+            properties=pika.BasicProperties(
+                correlation_id=props.correlation_id
+            ),
+            body=str(response),
+        )
 
         ch.basic_ack(delivery_tag=method.delivery_tag)

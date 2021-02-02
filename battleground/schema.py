@@ -9,6 +9,7 @@ import plark_game
 from plark_game.classes.sonobuoy import Sonobuoy
 from plark_game.classes.torpedo import Torpedo
 
+
 class SonobuoySchema(Schema):
     type = fields.Str()
     col = fields.Int(allow_none=True)
@@ -59,19 +60,29 @@ def serializer(input_obj, mode="serialize"):
     output: json-serialized, or de-serialized, version of the input_obj
     """
     if mode not in ["serialize", "deserialize"]:
-        raise RuntimeError("mode must be one of 'serialize', 'deserialize', not {}".format(mode))
+        raise RuntimeError(
+            "mode must be one of 'serialize', 'deserialize', not {}".format(
+                mode
+            )
+        )
     output = None
     sbs = SonobuoySchema()
     ts = TorpedoSchema()
     if isinstance(input_obj, dict):
         # if we are deserializing, create Sonobuoy or Torpedo objects out of
         # dicts that have the appropriate 'type'
-        if mode == "deserialize" and "type" in input_obj.keys() \
-                   and input_obj["type"] == "SONOBUOY":
-                    output = sbs.load(input_obj)
-        elif mode == "deserialize" and "type" in input_obj.keys() \
-                   and input_obj["type"] == "TORPEDO":
-                    output = ts.load(input_obj)
+        if (
+            mode == "deserialize"
+            and "type" in input_obj.keys()
+            and input_obj["type"] == "SONOBUOY"
+        ):
+            output = sbs.load(input_obj)
+        elif (
+            mode == "deserialize"
+            and "type" in input_obj.keys()
+            and input_obj["type"] == "TORPEDO"
+        ):
+            output = ts.load(input_obj)
         # for all other dicts, recursively look through their keys, values
         else:
             output = {}
@@ -81,7 +92,8 @@ def serializer(input_obj, mode="serialize"):
         output = []
         for item in input_obj:
             output.append(serializer(item, mode))
-    # if we have an instance of Sonobuoy or Torpedo, use marshmallow schema to serialize
+    # if we have an instance of Sonobuoy or Torpedo,
+    # use marshmallow schema to serialize
     elif isinstance(input_obj, plark_game.classes.sonobuoy.Sonobuoy):
         output = sbs.dump(input_obj)
     elif isinstance(input_obj, plark_game.classes.torpedo.Torpedo):

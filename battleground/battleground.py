@@ -1,9 +1,8 @@
 """
-Classes needed to run the Plark game with agents communicating via RabbitMQ messages.
+Classes needed to run the Plark game with agents communicating via
+RabbitMQ messages.
 """
 
-import os
-import time
 import json
 import numpy as np
 import pika
@@ -14,13 +13,10 @@ import imageio
 import PIL.Image
 
 from plark_game.classes.environment import Environment
-from plark_game.classes.newgame import (
-    Newgame,
-    load_agent,
-)
+from plark_game.classes.newgame import Newgame
 from plark_game.classes.move import Move
 
-from battleground.schema import serialize_state, deserialize_state
+from battleground.schema import serialize_state
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -36,17 +32,20 @@ class Battleground(Environment):
     creation and configuration of games.   Only difference is that instead
     of creating 'Newgame' instances, we create 'Battle' instances.
     """
+
     # Triggers the creation of a new game
-    def create_battle(self, config_file_path= None, **kwargs):
+    def create_battle(self, config_file_path=None, **kwargs):
         if config_file_path:
-            self.game_config = self.load_game_configuration( config_file=config_file_path)
+            self.game_config = self.load_game_configuration(
+                config_file=config_file_path
+            )
         else:
             self.game_config = self.load_game_configuration()
 
         gm = Battle(self.game_config, **kwargs)
         self.activeGames.append(gm)
         self.numberOfActiveGames = self.numberOfActiveGames + 1
-        logger.info('Game Created')
+        logger.info("Game Created")
 
 
 class Battle(Newgame):
@@ -101,23 +100,24 @@ class Battle(Newgame):
 
         self.render(self.render_width, self.render_height, self.gamePlayerTurn)
 
-
     def setup_message_queues(self):
         self.connection = pika.BlockingConnection(
-            pika.ConnectionParameters(host='localhost'))
+            pika.ConnectionParameters(host="localhost")
+        )
 
         self.channel = self.connection.channel()
 
-        result = self.channel.queue_declare(queue='', exclusive=True)
+        result = self.channel.queue_declare(queue="", exclusive=True)
         self.callback_queue = result.method.queue
 
         self.channel.basic_consume(
             queue=self.callback_queue,
             on_message_callback=self.on_response,
-            auto_ack=True)
+            auto_ack=True,
+        )
         self.routing_keys = {
-            "PELICAN": 'rpc_queue_pelican',
-            "PANTHER": 'rpc_queue_panther'
+            "PELICAN": "rpc_queue_pelican",
+            "PANTHER": "rpc_queue_panther",
         }
 
     def on_response(self, ch, method, props, body):
@@ -138,7 +138,11 @@ class Battle(Newgame):
         action: str, representation of an integer.
         """
         if agent_type not in ["PANTHER", "PELICAN"]:
-            raise RuntimeError("Unknown agent type {}, must be PANTHER or PELICAN".format(agent_type))
+            raise RuntimeError(
+                "Unknown agent type {}, must be PANTHER or PELICAN".format(
+                    agent_type
+                )
+            )
         # generate a uuid to identify this message
         self.corr_id = str(uuid.uuid4())
         # get the game state from the point-of-view of this agent
@@ -146,18 +150,17 @@ class Battle(Newgame):
         serialized_game_state = serialize_state(game_state)
         self.response = None
         self.channel.basic_publish(
-            exchange='',
+            exchange="",
             routing_key=self.routing_keys[agent_type],
             properties=pika.BasicProperties(
                 reply_to=self.callback_queue,
                 correlation_id=self.corr_id,
             ),
-            body=json.dumps(serialized_game_state)
+            body=json.dumps(serialized_game_state),
         )
         while self.response is None:
             self.connection.process_data_events()
         return self.response.decode("utf-8")
-
 
     def pelicanPhase(self):
         """
@@ -168,9 +171,7 @@ class Battle(Newgame):
 
         self.pelicanMove = Move()
         while True:
-            pelican_action = self.get_agent_action(
-                "PELICAN"
-            )
+            pelican_action = self.get_agent_action("PELICAN")
 
             self.perform_pelican_action(pelican_action)
             if (
@@ -189,9 +190,7 @@ class Battle(Newgame):
 
         self.pantherMove = Move()
         while True:
-            panther_action = self.get_agent_action(
-                "PANTHER"
-            )
+            panther_action = self.get_agent_action("PANTHER")
 
             self.perform_panther_action(panther_action)
             if (
