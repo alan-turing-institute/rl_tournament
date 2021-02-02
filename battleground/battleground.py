@@ -1,19 +1,25 @@
 """
+Classes needed to run the Plark game with agents communicating via RabbitMQ messages.
 """
 
 import os
+import json
 import numpy as np
+import pika
+import uuid
 import logging
 
 import imageio
 import PIL.Image
 
-from classes.newgame import (
+from plark_game.classes.environment import Environment
+from plark_game.classes.newgame import (
     Newgame,
     load_agent,
 )
-from classes.move import Move
+from plark_game.classes.move import Move
 
+from battleground.schema import serialize_state, deserialize_state
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -21,6 +27,25 @@ logger = logging.getLogger(__name__)
 
 VIDEO_BASE_WIDTH = 512
 VIDEO_FPS = 1
+
+
+class Battleground(Environment):
+    """
+    Derived class of 'Environment', fulfils the same role - manages the
+    creation and configuration of games.   Only difference is that instead
+    of creating 'Newgame' instances, we create 'Battle' instances.
+    """
+    # Triggers the creation of a new game
+    def create_battle(self, config_file_path= None, **kwargs):
+        if config_file_path:
+            self.game_config = self.load_game_configuration( config_file=config_file_path)
+        else:
+            self.game_config = self.load_game_configuration()
+
+        gm = Battle(self.game_config, **kwargs)
+        self.activeGames.append(gm)
+        self.numberOfActiveGames = self.numberOfActiveGames + 1
+        logger.info('Game Created')
 
 
 class Battle(Newgame):
@@ -46,31 +71,8 @@ class Battle(Newgame):
         # Create required game objects
         self.create_game_objects()
 
-        # Load agents
-
-        relative_basic_agents_filepath = os.path.normpath(
-            os.path.join(
-                os.getenv("PLARKAICOMPS"),
-                "plark-game",
-                "plark_game",
-                "agents",
-                "basic",
-            )
-        )
-
-        self.pelicanAgent = load_agent(
-            self.pelican_parameters["agent_filepath"],
-            self.pelican_parameters["agent_name"],
-            relative_basic_agents_filepath,
-            self,
-        )
-
-        self.pantherAgent = load_agent(
-            self.panther_parameters["agent_filepath"],
-            self.panther_parameters["agent_name"],
-            relative_basic_agents_filepath,
-            self,
-        )
+        # Initialize the RabbitMQ connection
+        self.setup_message_queues()
 
         self.gamePlayerTurn = "ALL"
 
@@ -98,6 +100,64 @@ class Battle(Newgame):
 
         self.render(self.render_width, self.render_height, self.gamePlayerTurn)
 
+
+    def setup_message_queues(self):
+        self.connection = pika.BlockingConnection(
+            pika.ConnectionParameters(host='localhost'))
+
+        self.channel = self.connection.channel()
+
+        result = self.channel.queue_declare(queue='', exclusive=True)
+        self.callback_queue = result.method.queue
+
+        self.channel.basic_consume(
+            queue=self.callback_queue,
+            on_message_callback=self.on_response,
+            auto_ack=True)
+        self.routing_keys = {
+            "PELICAN": 'rpc_queue_pelican',
+            "PANTHER": 'rpc_queue_panther'
+        }
+
+    def on_response(self, ch, method, props, body):
+        if self.corr_id == props.correlation_id:
+            self.response = body
+
+    def get_agent_action(self, agent_type):
+        """
+        Send a message to the appropriate queue to get
+        an "action" from an agent.
+
+        Parameters
+        ==========
+        agent_type: str, must be "PELICAN" or "PANTHER"
+
+        Returns
+        =======
+        action: str, representation of an integer.
+        """
+        if agent_type not in ["PANTHER", "PELICAN"]:
+            raise RuntimeError("Unknown agent type {}, must be PANTHER or PELICAN".format(agent_type))
+        # generate a uuid to identify this message
+        self.corr_id = str(uuid.uuid4())
+        # get the game state from the point-of-view of this agent
+        game_state = self._state(agent_type)
+        serialized_game_state = serialize_state(game_state)
+        self.response = None
+        self.channel.basic_publish(
+            exchange='',
+            routing_key=self.routing_keys[agent_type],
+            properties=pika.BasicProperties(
+                reply_to=self.callback_queue,
+                correlation_id=self.corr_id,
+            ),
+            body=json.dumps(serialized_game_state)
+        )
+        while self.response is None:
+            self.connection.process_data_events()
+        return str(self.response)
+
+
     def pelicanPhase(self):
         """
         Pelican's move
@@ -107,8 +167,8 @@ class Battle(Newgame):
 
         self.pelicanMove = Move()
         while True:
-            pelican_action = self.pelicanAgent.getAction(
-                self._state("PELICAN")
+            pelican_action = self.get_agent_action(
+                "PELICAN"
             )
 
             self.perform_pelican_action(pelican_action)
@@ -129,8 +189,8 @@ class Battle(Newgame):
 
         self.pantherMove = Move()
         while True:
-            panther_action = self.pantherAgent.getAction(
-                self._state("PANTHER")
+            panther_action = self.get_agent_action(
+                "PANTHER"
             )
 
             self.perform_panther_action(panther_action)
