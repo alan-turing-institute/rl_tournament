@@ -35,7 +35,7 @@ class TorpedoSchema(Schema):
     row = fields.Int(allow_none=True)
     turn = fields.Int()
     size = fields.Int()
-    speed = fields.Int(allow_none=True)
+    speed = fields.List(fields.Int(), allow_none=True)
     searchRadius = fields.Int(allow_none=True)
 
     @post_load
@@ -44,47 +44,57 @@ class TorpedoSchema(Schema):
         return t
 
 
-def serialize_state(state):
+def serializer(input_obj, mode="serialize"):
     """
-    Convert any Torpedo or Sonobuoy objects in the state
+    Recursive function to convert any Torpedo or Sonobuoy objects in the state
     into their JSON representations.
+
+    Parameters
+    ==========
+    input_obj: could be dict, list, Torpedo, or Sonobuoy
+    mode: str, must be "serialize" or "deserialize"
+
+    Returns
+    =======
+    output: json-serialized, or de-serialized, version of the input_obj
     """
-    output_json = {}
+    if mode not in ["serialize", "deserialize"]:
+        raise RuntimeError("mode must be one of 'serialize', 'deserialize', not {}".format(mode))
+    output = None
     sbs = SonobuoySchema()
     ts = TorpedoSchema()
-    for k, v in state.items():
-        if k != "pelican_loadout":
-            output_json[k] = v
+    if isinstance(input_obj, dict):
+        # if we are deserializing, create Sonobuoy or Torpedo objects out of
+        # dicts that have the appropriate 'type'
+        if mode == "deserialize" and "type" in input_obj.keys() \
+                   and input_obj["type"] == "SONOBUOY":
+                    output = sbs.load(input_obj)
+        elif mode == "deserialize" and "type" in input_obj.keys() \
+                   and input_obj["type"] == "TORPEDO":
+                    output = ts.load(input_obj)
+        # for all other dicts, recursively look through their keys, values
         else:
-            loadout = []
-            for obj in v:
-                if isinstance(obj, plark_game.classes.sonobuoy.Sonobuoy):
-                    loadout.append(sbs.dump(obj))
-                elif isinstance(obj, plark_game.classes.torpedo.Torpedo):
-                    loadout.append(ts.dump(obj))
-            output_json[k] = loadout
-    return output_json
+            output = {}
+            for k, v in input_obj.items():
+                output[k] = serializer(v, mode)
+    elif isinstance(input_obj, list):
+        output = []
+        for item in input_obj:
+            output.append(serializer(item, mode))
+    # if we have an instance of Sonobuoy or Torpedo, use marshmallow schema to serialize
+    elif isinstance(input_obj, plark_game.classes.sonobuoy.Sonobuoy):
+        output = sbs.dump(input_obj)
+    elif isinstance(input_obj, plark_game.classes.torpedo.Torpedo):
+        output = ts.dump(input_obj)
+    # any other type, just return as is
+    else:
+        output = input_obj
+    return output
 
 
-def deserialize_state(json_state):
-    """
-    Convert JSON representation of state in to version
-    containing instances of Torpedo and Sonobuoy classes.
-    """
-    output_json = {}
-    sbs = SonobuoySchema()
-    ts = TorpedoSchema()
-    for k, v in json_state.items():
-        if k != "pelican_loadout":
-            output_json[k] = v
-        else:
-            loadout = []
-            for obj in v:
-                if isinstance(obj, dict) and "type" in obj.keys() \
-                   and obj["type"] == "SONOBUOY":
-                    loadout.append(sbs.load(obj))
-                elif isinstance(obj, dict) and "type" in obj.keys() \
-                   and obj["type"] == "TORPEDO":
-                    loadout.append(ts.load(obj))
-            output_json[k] = loadout
-    return output_json
+def serialize_state(game_state):
+    return serializer(game_state, "serialize")
+
+
+def deserialize_state(game_state):
+    return serializer(game_state, "deserialize")
