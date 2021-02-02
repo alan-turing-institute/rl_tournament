@@ -91,13 +91,12 @@ class Combatant:
 
 
     def get_action(self, ch, method, props, body):
-        print("Received message {} type {}".format(body, type(body)))
+
         state = json.loads(body)
         # convert json objects back into e.g. Torpedo instances
         deserialized_state = deserialize_state(state)
-
+        # ask the agent for the action, given this state
         response = self.agent.getAction(deserialized_state)
-        print("Got response {}".format(response))
         ch.basic_publish(exchange='',
                          routing_key=props.reply_to,
                          properties=pika.BasicProperties(correlation_id = \

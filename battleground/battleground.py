@@ -3,6 +3,7 @@ Classes needed to run the Plark game with agents communicating via RabbitMQ mess
 """
 
 import os
+import time
 import json
 import numpy as np
 import pika
@@ -155,7 +156,7 @@ class Battle(Newgame):
         )
         while self.response is None:
             self.connection.process_data_events()
-        return str(self.response)
+        return self.response.decode("utf-8")
 
 
     def pelicanPhase(self):
@@ -172,7 +173,6 @@ class Battle(Newgame):
             )
 
             self.perform_pelican_action(pelican_action)
-
             if (
                 self.pelican_move_in_turn
                 >= self.pelican_parameters["move_limit"]
