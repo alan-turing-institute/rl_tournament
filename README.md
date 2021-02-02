@@ -32,11 +32,13 @@ to start RabbitMQ.
 
 In another terminal, run (from this directory):
 ```
+export PLARKAICOMPS=/path/to/plark_ai_public
 python battleground/combatant_panther.py
 ```
 
 From another terminal, run (also from this directory):
 ```
+export PLARKAICOMPS=/path/to/plark_ai_public
 python battleground/combatant_pelican.py
 ```
 
