@@ -1,0 +1,53 @@
+version: '3'
+services:
+  battleground:
+    container_name: plark_battleground
+    build:
+      context: .
+      dockerfile: Dockerfile_battleground
+    environment:
+    - RABBITMQ_HOST=rabbitmq
+    networks:
+    - plark_nw
+    tty: true
+    command: "/bin/bash"
+
+  pelican:
+    container_name: pelican_agent
+    build:
+      context: .
+      dockerfile: Dockerfile_agent
+    environment:
+    - PLARKAICOMPS=/rl_tournament/plark_ai_public
+    - RABBITMQ_HOST=rabbitmq
+    networks:
+    - plark_nw
+    tty: true
+    command: "python3 battleground/combatant_pelican.py"
+
+  panther:
+    container_name: panther_agent
+    build:
+      context: .
+      dockerfile: Dockerfile_agent
+    environment:
+    - PLARKAICOMPS=/rl_tournament/plark_ai_public
+    - RABBITMQ_HOST=rabbitmq
+    networks:
+    - plark_nw
+    tty: true
+    command: "python3 battleground/combatant_panther.py"
+
+
+  messages:
+    container_name:  rabbitmq
+    image: rabbitmq:3-management
+    restart: always
+    ports:
+    - "5672:5672"
+    networks:
+    - plark_nw
+
+networks:
+  plark_nw:
+    driver: bridge
