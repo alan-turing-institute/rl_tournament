@@ -1,24 +1,16 @@
 import os
 import json
 import logging
+import pika
 
-# from abc import abstractmethod
+from plark_game.classes.newgame import load_agent
+from plark_game.classes.pantherAgent_load_agent import Panther_Agent_Load_Agent
+from plark_game.classes.pelicanAgent_load_agent import Pelican_Agent_Load_Agent
 
-from classes.newgame import load_agent
-from classes.pantherAgent_load_agent import Panther_Agent_Load_Agent
-from classes.pelicanAgent_load_agent import Pelican_Agent_Load_Agent
+from schema import deserialize_state
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-# class combatant_panther():
-#     @abstractmethod
-#     def __load_agent(self):
-#         self.panther_agent = None
-
-#     def __init__(self):
-#         self.__load_agent()
 
 
 def load_combatant(
@@ -89,3 +81,30 @@ def load_combatant(
                     )
 
     return None
+
+
+class Combatant:
+    def __init__(
+        self, agent_path, agent_name, basic_agents_path, game=None, **kwargs
+    ):
+        self.agent = load_combatant(
+            agent_path, agent_name, basic_agents_path, game=None, **kwargs
+        )
+
+    def get_action(self, ch, method, props, body):
+
+        state = json.loads(body)
+        # convert json objects back into e.g. Torpedo instances
+        deserialized_state = deserialize_state(state)
+        # ask the agent for the action, given this state
+        response = self.agent.getAction(deserialized_state)
+        ch.basic_publish(
+            exchange="",
+            routing_key=props.reply_to,
+            properties=pika.BasicProperties(
+                correlation_id=props.correlation_id
+            ),
+            body=str(response),
+        )
+
+        ch.basic_ack(delivery_tag=method.delivery_tag)
