@@ -1,10 +1,15 @@
+import os
 import pika
 import logging
 
 logging.basicConfig()
 
+if "RABBITMQ_HOST" in os.environ.keys():
+    hostname = os.environ["RABBITMQ_HOST"]
+else:
+    hostname = "localhost"
 connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host="localhost")
+    pika.ConnectionParameters(host=hostname)
 )
 
 channel = connection.channel()
