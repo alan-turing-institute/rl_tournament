@@ -3,6 +3,7 @@ Classes needed to run the Plark game with agents communicating via
 RabbitMQ messages.
 """
 
+import os
 import json
 import numpy as np
 import pika
@@ -101,8 +102,12 @@ class Battle(Newgame):
         self.render(self.render_width, self.render_height, self.gamePlayerTurn)
 
     def setup_message_queues(self):
+        if "RABBITMQ_HOST" in os.environ.keys():
+            hostname = os.environ["RABBITMQ_HOST"]
+        else:
+            hostname = "localhost"
         self.connection = pika.BlockingConnection(
-            pika.ConnectionParameters(host="localhost")
+            pika.ConnectionParameters(host=hostname)
         )
 
         self.channel = self.connection.channel()
