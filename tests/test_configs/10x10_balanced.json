@@ -3,7 +3,7 @@
         "maximum_turns": 36,
         "map_width": 10,
         "map_height": 10,
-        "driving_agent": "", 
+        "driving_agent": "",
         "max_illegal_moves_per_turn": 10
     },
     "game_rules": {
@@ -14,7 +14,7 @@
             "move_limit": 1,
             "start_col": 5,
             "start_row": 9,
-            "agent_filepath": "/Users/tlazauskas/git/Turing/plark_ai_public/data/agents/models/test_20200325_184254/PPO2_20200325_184254_panther",
+            "agent_filepath": "/rl_tournament/plark_ai_public/data/agents/models/test_20200325_184254/PPO2_20200325_184254_panther",
             "agent_name": "Panther_TEST",
             "render_height": 250 ,
             "render_width": 310
@@ -22,7 +22,7 @@
         "pelican": {
             "move_limit": 10,
             "madman_range": 0,
-            "agent_filepath": "/Users/tlazauskas/git/Turing/plark_ai_public/data/agents/models/test_20200325_184254/PPO2_20200325_184254_pelican",
+            "agent_filepath": "/rl_tournament/plark_ai_public/data/agents/models/test_20200325_184254/PPO2_20200325_184254_pelican",
             "agent_name":"Pelican_TEST",
             "default_torps" : 5,
             "default_sonobuoys": 10,
