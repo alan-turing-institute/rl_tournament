@@ -1,3 +1,4 @@
+import os
 import pika
 import uuid
 
@@ -8,8 +9,12 @@ logging.basicConfig()
 
 class FibonacciRpcClient(object):
     def __init__(self):
+        if "RABBITMQ_HOST" in os.environ.keys():
+            hostname = os.environ["RABBITMQ_HOST"]
+        else:
+            hostname = "localhost"
         self.connection = pika.BlockingConnection(
-            pika.ConnectionParameters(host="localhost")
+            pika.ConnectionParameters(host=hostname)
         )
 
         self.channel = self.connection.channel()

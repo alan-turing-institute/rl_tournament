@@ -16,8 +16,12 @@ logging.basicConfig()
 
 def run_pelican(agent_path, agent_name, basic_agents_path):
     pelican_agent = Combatant(agent_path, agent_name, basic_agents_path)
+    if "RABBITMQ_HOST" in os.environ.keys():
+        hostname = os.environ["RABBITMQ_HOST"]
+    else:
+        hostname = "localhost"
     connection = pika.BlockingConnection(
-        pika.ConnectionParameters(host="localhost")
+        pika.ConnectionParameters(host=hostname)
     )
 
     channel = connection.channel()

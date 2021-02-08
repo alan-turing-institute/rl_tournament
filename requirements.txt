@@ -7,3 +7,4 @@ black==20.8b1
 flake8==3.8.4
 pre-commit==2.10.0
 marshmallow==3.10.0
+imageio==2.9.0
