@@ -35,21 +35,6 @@ services:
     - messages
     command: "python3 Combatant/combatant.py pelican"
 
-  # pelican:
-  #   container_name: pelican_agent
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile_agent
-  #   environment:
-  #   - PLARKAICOMPS=/rl_tournament/plark_ai_public
-  #   - RABBITMQ_HOST=rabbitmq
-  #   networks:
-  #   - plark_nw
-  #   tty: true
-  #   depends_on: 
-  #   - messages
-  #   command: "python3 battleground/combatant_pelican.py"
-
   panther:
     container_name: panther_agent
     image: plark_hunt/team_test:latest
