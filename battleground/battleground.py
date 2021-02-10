@@ -17,7 +17,13 @@ from plark_game.classes.environment import Environment
 from plark_game.classes.newgame import Newgame
 from plark_game.classes.move import Move
 
-from battleground.schema import serialize_state
+from battleground.serialization import serialize_state
+from battleground.schema import (
+    Team,
+    Match,
+    Game,
+    session
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -206,7 +212,7 @@ class Battle(Newgame):
             ):
                 break
 
-    def play(self, video_file_path=None):
+    def play(self, match_id=0, video_file_path=None):
         """
         Plays a battle.
 
@@ -218,12 +224,20 @@ class Battle(Newgame):
         """
 
         logger.info("Battle begins!")
+        parent_match = session.query(Match).filter_by(match_id=match_id).first()
+        if not parent_match:
+            raise RuntimeError("unable to find match with id {} in db".format(match_id))
+
+        g = Game()
+        g.match = parent_match
+
 
         if video_file_path is not None:
             writer = imageio.get_writer(video_file_path, fps=VIDEO_FPS)
         else:
             writer = None
-
+        num_turns = 0
+        state = None
         while True:
 
             if writer is not None:
@@ -248,7 +262,10 @@ class Battle(Newgame):
 
             if state != "Running":
                 break
+            num_turns += 1
 
+        g.num_turns = num_turns
+        g.result_code = state
         if writer is not None:
             writer.close()
 
