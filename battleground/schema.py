@@ -26,7 +26,7 @@ class Team(Base):
     team_id = Column(Integer, primary_key=True, nullable=False,
                       autoincrement=True)
     team_name = Column(String(100), nullable=False)
-    team_members = Column(String(1000), nullable=False
+    team_members = Column(String(1000), nullable=False)
     matches = relationship("Match", uselist=True,
                            primaryjoin="or_(Team.team_id==Match.pelican_team_id, Team.team_id==Match.panther_team_id)")
 
@@ -42,11 +42,12 @@ class Match(Base):
     pelican_agent = Column(String(100), nullable=False)
     panther_team_id = Column(Integer, ForeignKey("team.team_id"))
     panther_team = relationship("Team", back_populates="matches", foreign_keys=[panther_team_id])
-
     # docker image name and tag
     panther_agent = Column(String(100), nullable=False)
-    # link to game config json
+    # link to game config json (on cloud storage)
     game_config = Column(String(100), nullable=False)
+    # link to logfile (on cloud storage)
+    logfile_url = Column(String(100), nullable=False)
     games = relationship("Game", uselist=True,
                          back_populates="match")
     def winner(self):
@@ -74,8 +75,8 @@ class Game(Base):
                      autoincrement=True)
     num_turns = Column(Integer, nullable=False)
     result_code = Column(String(100), nullable=False)
-    # link to logfile (on cloud storage)
-    logfile_url = Column(String(100), nullable=False)
+    # link to video (on cloud storage)
+    video_url = Column(String(100), nullable=False)
     match = relationship("Match", back_populates="games")
     match_id = Column(Integer, ForeignKey("match.match_id"))
     def winner(self):
