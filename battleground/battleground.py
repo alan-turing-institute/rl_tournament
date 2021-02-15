@@ -31,30 +31,30 @@ from battleground.schema import (
 
 from battleground.azure_utils import write_file_to_blob, read_json
 
-MATCH_ID = int(os.environ["MATCH_ID"]) if "MATCH_ID" in os.environ.keys() \
-               else 0
-
 # configure the logger
 logger = logging.getLogger("battleground_logger")
 formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
 logger.setLevel(logging.INFO)
-f_handler = RotatingFileHandler(
-    "match_{}_{}.log".format(MATCH_ID, time.strftime("%Y-%m-%d_%H-%M-%S")),
-    maxBytes=5 * 1024 * 1024, backupCount=10
-)
-f_handler.setFormatter(formatter)
 c_handler = logging.StreamHandler()
 c_handler.setFormatter(formatter)
 
-
-logger.addHandler(f_handler)
 logger.addHandler(c_handler)
 
 VIDEO_BASE_WIDTH = 512
 VIDEO_FPS = 1
+
+STORAGE_ACCOUNT_NAME = "rldsgstorage"
 CONFIG_CONTAINER_NAME = "config-files"
 VIDEO_CONTAINER_NAME = "video-files"
 LOGFILE_CONTAINER_NAME = "log-files"
+
+
+def make_az_url(storage_account_name, container_name, blob_name):
+    """
+    return the URL on Azure blob storage of a blob.
+    """
+    return "https://{}.blob.core.windows.net/{}/{}".format(storage_account_name, container_name, blob_name)
+
 
 
 class Battleground(Environment):
@@ -64,11 +64,26 @@ class Battleground(Environment):
     of creating 'Newgame' instances, we create 'Battle' instances.
     """
 
-    def __init__(self, match_id, num_games, config_file, **kwargs):
+    def __init__(self, match_id, **kwargs):
         super().__init__(**kwargs)
+        match_id = int(match_id)
+        # new logfile name for this match
+        self.f_handler = RotatingFileHandler(
+            "match_{}_{}.log".format(match_id,
+                                     time.strftime("%Y-%m-%d_%H-%M-%S")),
+            maxBytes=5 * 1024 * 1024, backupCount=10
+        )
+        self.f_handler.setFormatter(formatter)
+        logger.addHandler(self.f_handler)
+        match = session.query(Match)\
+                       .filter_by(match_id=match_id)\
+                       .first()
+        if not match:
+            raise RuntimeError("Could not find match {} in DB"\
+                               .format(match_id))
         self.match_id = match_id
-        self.num_games = num_games
-        self.config_file = config_file
+        self.num_games = match.num_games
+        self.config_file = match.game_config
 
 
     def setup_games(self, **kwargs):
@@ -111,7 +126,7 @@ class Battleground(Environment):
         database.
         """
         # save logfile to Cloud storage
-        log_path = f_handler.baseFilename
+        log_path = self.f_handler.baseFilename
         log_filename = os.path.basename(log_path)
         write_file_to_blob(log_path,
                            log_filename,
@@ -120,7 +135,10 @@ class Battleground(Environment):
         m = session.query(Match).filter_by(match_id=self.match_id).first()
         if not m:
             raise RuntimeError("Unable to retrieve match {} from db".format(self.match_id))
-        m.logfile_url = log_filename
+        logfile_url = make_az_url(STORAGE_ACCOUNT_NAME,
+                                  LOGFILE_CONTAINER_NAME,
+                                  log_filename)
+        m.logfile_url = logfile_url
         session.add(m)
         session.commit()
 
@@ -345,13 +363,19 @@ class Battle(Newgame):
             VIDEO_CONTAINER_NAME,
             os.path.basename(video_file_path)
         ))
+        video_filename = os.path.basename(video_file_path)
         write_file_to_blob(
             video_file_path,
-            os.path.basename(video_file_path),
+            video_filename,
             VIDEO_CONTAINER_NAME
         )
         logger.info("Battle finished.")
+        video_url = make_az_url(STORAGE_ACCOUNT_NAME,
+                                VIDEO_CONTAINER_NAME,
+                                video_filename)
+        g.video_url = video_url
 
-        # Who won?
+        session.add(g)
+        session.commit()
 
         return
