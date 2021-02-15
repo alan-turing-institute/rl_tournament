@@ -1,6 +1,5 @@
 import os
 import json
-import arrow
 
 from azure.storage.blob import (
     BlockBlobService,
@@ -48,29 +47,6 @@ def check_blob_exists(blob_name, container_name, bbs=None):
         )
     blob_names = bbs.list_blob_names(container_name)
     return blob_name in blob_names
-
-
-def get_sas_token(
-    container_name, token_duration=1, permissions="READ", bbs=None
-):
-    if not bbs:
-        bbs = BlockBlobService(
-            account_name=config["storage_account_name"],
-            account_key=config["storage_account_key"],
-        )
-    token_permission = (
-        ContainerPermissions.WRITE
-        if permissions == "WRITE"
-        else ContainerPermissions.READ
-    )
-    token = bbs.generate_container_shared_access_signature(
-        container_name=container_name,
-        permission=token_permission,
-        protocol="https",
-        start=arrow.utcnow().shift(hours=-1).datetime,
-        expiry=arrow.utcnow().shift(hours=token_duration).datetime,
-    )
-    return token
 
 
 def retrieve_blob(blob_name, container_name, destination="/tmp/", bbs=None):
