@@ -7,5 +7,5 @@ else:
         os.environ["PlarkDBUser"],
         os.environ["PlarkDBPassword"],
         os.environ["PlarkDBUri"],
-        os.environ["PlarkDBName"]
+        os.environ["PlarkDBName"],
     )

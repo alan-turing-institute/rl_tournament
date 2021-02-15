@@ -8,7 +8,6 @@ import json
 import numpy as np
 import pika
 import uuid
-import logging
 import time
 
 import imageio
@@ -22,12 +21,7 @@ from plark_game.classes.newgame import Newgame
 from plark_game.classes.move import Move
 
 from battleground.serialization import serialize_state
-from battleground.schema import (
-    Team,
-    Match,
-    Game,
-    session
-)
+from battleground.schema import Match, Game, session
 
 from battleground.azure_utils import write_file_to_blob, read_json
 
@@ -53,8 +47,9 @@ def make_az_url(storage_account_name, container_name, blob_name):
     """
     return the URL on Azure blob storage of a blob.
     """
-    return "https://{}.blob.core.windows.net/{}/{}".format(storage_account_name, container_name, blob_name)
-
+    return "https://{}.blob.core.windows.net/{}/{}".format(
+        storage_account_name, container_name, blob_name
+    )
 
 
 class Battleground(Environment):
@@ -69,35 +64,33 @@ class Battleground(Environment):
         match_id = int(match_id)
         # new logfile name for this match
         self.f_handler = RotatingFileHandler(
-            "match_{}_{}.log".format(match_id,
-                                     time.strftime("%Y-%m-%d_%H-%M-%S")),
-            maxBytes=5 * 1024 * 1024, backupCount=10
+            "match_{}_{}.log".format(
+                match_id, time.strftime("%Y-%m-%d_%H-%M-%S")
+            ),
+            maxBytes=5 * 1024 * 1024,
+            backupCount=10,
         )
         self.f_handler.setFormatter(formatter)
         logger.addHandler(self.f_handler)
-        match = session.query(Match)\
-                       .filter_by(match_id=match_id)\
-                       .first()
+        match = session.query(Match).filter_by(match_id=match_id).first()
         if not match:
-            raise RuntimeError("Could not find match {} in DB"\
-                               .format(match_id))
+            raise RuntimeError(
+                "Could not find match {} in DB".format(match_id)
+            )
         self.match_id = match_id
         self.num_games = match.num_games
         self.config_file = match.game_config
 
-
     def setup_games(self, **kwargs):
 
         self.game_config = read_json(
-            blob_name=self.config_file,
-            container_name=CONFIG_CONTAINER_NAME
+            blob_name=self.config_file, container_name=CONFIG_CONTAINER_NAME
         )
 
         logger.info("Loaded game config {}".format(self.config_file))
         for i in range(self.num_games):
             logger.info("Creating game {}".format(i))
             self.create_battle(**kwargs)
-
 
     # Triggers the creation of a new game
     def create_battle(self, **kwargs):
@@ -107,17 +100,12 @@ class Battleground(Environment):
         self.numberOfActiveGames = self.numberOfActiveGames + 1
         logger.info("Game Created")
 
-
     def play(self):
         for i, game in enumerate(self.activeGames):
-            video_filename = "match_{}_game_{}_{}.mp4".\
-                format(
-                    self.match_id,
-                    i,
-                    time.strftime("%Y-%m-%d_%H-%M-%S")
-                )
-            game.play(match_id=self.match_id,
-                      video_file_path=video_filename)
+            video_filename = "match_{}_game_{}_{}.mp4".format(
+                self.match_id, i, time.strftime("%Y-%m-%d_%H-%M-%S")
+            )
+            game.play(match_id=self.match_id, video_file_path=video_filename)
         self.save_logfile()
 
     def save_logfile(self):
@@ -128,16 +116,16 @@ class Battleground(Environment):
         # save logfile to Cloud storage
         log_path = self.f_handler.baseFilename
         log_filename = os.path.basename(log_path)
-        write_file_to_blob(log_path,
-                           log_filename,
-                           LOGFILE_CONTAINER_NAME)
+        write_file_to_blob(log_path, log_filename, LOGFILE_CONTAINER_NAME)
         # retrieve the match from the db so we can update its logfile_url
         m = session.query(Match).filter_by(match_id=self.match_id).first()
         if not m:
-            raise RuntimeError("Unable to retrieve match {} from db".format(self.match_id))
-        logfile_url = make_az_url(STORAGE_ACCOUNT_NAME,
-                                  LOGFILE_CONTAINER_NAME,
-                                  log_filename)
+            raise RuntimeError(
+                "Unable to retrieve match {} from db".format(self.match_id)
+            )
+        logfile_url = make_az_url(
+            STORAGE_ACCOUNT_NAME, LOGFILE_CONTAINER_NAME, log_filename
+        )
         m.logfile_url = logfile_url
         session.add(m)
         session.commit()
@@ -196,8 +184,6 @@ class Battle(Newgame):
         self.reset_game()
 
         self.render(self.render_width, self.render_height, self.gamePlayerTurn)
-
-
 
     def setup_message_queues(self):
         if "RABBITMQ_HOST" in os.environ.keys():
@@ -316,13 +302,16 @@ class Battle(Newgame):
         """
 
         logger.info("Battle begins!")
-        parent_match = session.query(Match).filter_by(match_id=match_id).first()
+        parent_match = (
+            session.query(Match).filter_by(match_id=match_id).first()
+        )
         if not parent_match:
-            raise RuntimeError("unable to find match with id {} in db".format(match_id))
+            raise RuntimeError(
+                "unable to find match with id {} in db".format(match_id)
+            )
 
         g = Game()
         g.match = parent_match
-
 
         if video_file_path is not None:
             writer = imageio.get_writer(video_file_path, fps=VIDEO_FPS)
@@ -359,20 +348,19 @@ class Battle(Newgame):
         g.result_code = state
         if writer is not None:
             writer.close()
-        logger.info("Saving video to {}/{}".format(
-            VIDEO_CONTAINER_NAME,
-            os.path.basename(video_file_path)
-        ))
+        logger.info(
+            "Saving video to {}/{}".format(
+                VIDEO_CONTAINER_NAME, os.path.basename(video_file_path)
+            )
+        )
         video_filename = os.path.basename(video_file_path)
         write_file_to_blob(
-            video_file_path,
-            video_filename,
-            VIDEO_CONTAINER_NAME
+            video_file_path, video_filename, VIDEO_CONTAINER_NAME
         )
         logger.info("Battle finished.")
-        video_url = make_az_url(STORAGE_ACCOUNT_NAME,
-                                VIDEO_CONTAINER_NAME,
-                                video_filename)
+        video_url = make_az_url(
+            STORAGE_ACCOUNT_NAME, VIDEO_CONTAINER_NAME, video_filename
+        )
         g.video_url = video_url
 
         session.add(g)

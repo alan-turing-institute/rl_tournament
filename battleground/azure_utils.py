@@ -1,60 +1,20 @@
 import os
-import io
 import json
-
-AZURE_CONFIG_FOUND=False
-
-# load the azure configuration if we have the azure_config.py file
-try:
-    from battleground.azure_config import config
-    AZURE_CONFIG_FOUND=True
-except:
-    pass
+import arrow
 
 from azure.storage.blob import (
     BlockBlobService,
-    PublicAccess,
-    ContainerPermissions
+    ContainerPermissions,
 )
 from azure.common import AzureMissingResourceHttpError
 
-
-def sanitize_container_name(orig_name):
-    """
-    only allowed alphanumeric characters and dashes.
-    """
-    sanitized_name = ""
-    previous_character = None
-    for character in orig_name:
-        if not re.search("[-a-zA-Z\d]", character):
-            if not previous_character == "-":
-                sanitized_name += "-"
-                previous_character = "-"
-            else:
-                continue
-        else:
-            sanitized_name += character.lower()
-            previous_character = character
-    if "\\" in sanitized_name:
-        sanitized_name = sanitized_name.replace("\\","/")
-
-    return sanitized_name
+from battleground.azure_config import config
 
 
 def check_container_exists(container_name, bbs=None):
     """
     See if a container already exists for this account name.
     """
-    if not AZURE_CONFIG_FOUND:
-        raise RuntimeError(
-            """
-            azure_config.py not found - this is needed for using Azure
-            storage or batch.
-            Copy pyveg/azure_config_template.py to pyveg/azure_config.py
-            then input your   own values for Azure Storage account name
-            and Access key, then redo `pip install .`
-            """
-        )
     if not bbs:
         bbs = BlockBlobService(
             account_name=config["storage_account_name"],
@@ -64,6 +24,9 @@ def check_container_exists(container_name, bbs=None):
 
 
 def create_container(container_name, bbs=None):
+    """
+    Create a storage container with the specified name.
+    """
     if not bbs:
         bbs = BlockBlobService(
             account_name=config["storage_account_name"],
@@ -87,7 +50,9 @@ def check_blob_exists(blob_name, container_name, bbs=None):
     return blob_name in blob_names
 
 
-def get_sas_token(container_name, token_duration=1, permissions="READ", bbs=None):
+def get_sas_token(
+    container_name, token_duration=1, permissions="READ", bbs=None
+):
     if not bbs:
         bbs = BlockBlobService(
             account_name=config["storage_account_name"],
@@ -98,7 +63,6 @@ def get_sas_token(container_name, token_duration=1, permissions="READ", bbs=None
         if permissions == "WRITE"
         else ContainerPermissions.READ
     )
-    duration = token_duration  # days
     token = bbs.generate_container_shared_access_signature(
         container_name=container_name,
         permission=token_permission,
@@ -111,7 +75,8 @@ def get_sas_token(container_name, token_duration=1, permissions="READ", bbs=None
 
 def retrieve_blob(blob_name, container_name, destination="/tmp/", bbs=None):
     """
-    use the BlockBlobService to retrieve file from Azure, and place in destination folder.
+    use the BlockBlobService to retrieve file from Azure,
+    and place in destination folder.
     """
     if not bbs:
         bbs = BlockBlobService(
@@ -121,11 +86,15 @@ def retrieve_blob(blob_name, container_name, destination="/tmp/", bbs=None):
     local_filename = blob_name.split("/")[-1]
     try:
         bbs.get_blob_to_path(
-            container_name, blob_name, os.path.join(destination, local_filename)
+            container_name,
+            blob_name,
+            os.path.join(destination, local_filename),
         )
         return True, "retrieved script OK"
     except (AzureMissingResourceHttpError):
-        return False, "failed to retrieve {} from {}".format(blob_name, container_name)
+        return False, "failed to retrieve {} from {}".format(
+            blob_name, container_name
+        )
     return os.path.join(destination, local_filename)
 
 
@@ -136,14 +105,33 @@ def list_directory(path, container_name, bbs=None):
             account_key=config["storage_account_key"],
         )
         pass
-    output_names = []
     prefix = remove_container_name_from_blob_path(path, container_name)
     if prefix and not prefix.endswith("/"):
         prefix += "/"
 
-    blob_names = bbs.list_blob_names(container_name, prefix=prefix, delimiter="/")
+    blob_names = bbs.list_blob_names(
+        container_name, prefix=prefix, delimiter="/"
+    )
     blob_names = [bn[:-1] if bn.endswith("/") else bn for bn in blob_names]
     return [os.path.basename(bn) for bn in blob_names]
+
+
+def split_filepath(path):
+    allparts = []
+    if path.endswith("/") or path.endswith("\\"):
+        path = path[:-1]
+    while True:
+        parts = os.path.split(path)
+        if parts[0] == path:  # for absolute paths
+            allparts.insert(0, parts[0])
+            break
+        elif parts[1] == path:  # for relative paths
+            allparts.insert(0, parts[1])
+            break
+        else:
+            path = parts[0]
+            allparts.insert(0, parts[1])
+    return allparts
 
 
 def remove_container_name_from_blob_path(blob_path, container_name):
@@ -152,7 +140,7 @@ def remove_container_name_from_blob_path(blob_path, container_name):
     """
     # container name will often be part of filepath - we want
     # the blob name to be the bit after that
-    if not container_name in blob_path:
+    if container_name not in blob_path:
         return blob_path
     blob_name_parts = []
     filepath_parts = split_filepath(blob_path)
@@ -193,8 +181,10 @@ def write_files_to_blob(
 ):
     """
     Upload a whole directory structure to blob storage.
-    If we are given 'blob_path' we use that - if not we preserve the given file path structure.
-    In both cases we take care to remove the container name from the start of the blob path
+    If we are given 'blob_path' we use that - if not we preserve
+    the given file path structure.
+    In both cases we take care to remove the container name from
+    the start of the blob path
     """
 
     if not bbs:
@@ -214,10 +204,14 @@ def write_files_to_blob(
                 filepaths_to_upload.append(filepath)
     for filepath in filepaths_to_upload:
         if blob_path:
-            blob_fullpath = os.path.join(blob_path, os.path.split(filepath)[-1])
+            blob_fullpath = os.path.join(
+                blob_path, os.path.split(filepath)[-1]
+            )
         else:
             blob_fullpath = filepath
-        blob_name = remove_container_name_from_blob_path(blob_fullpath, container_name)
+        blob_name = remove_container_name_from_blob_path(
+            blob_fullpath, container_name
+        )
 
         write_file_to_blob(filepath, blob_name, container_name, bbs)
 
@@ -232,16 +226,3 @@ def read_json(blob_name, container_name, bbs=None):
     data_blob = bbs.get_blob_to_text(container_name, blob_name)
     data = json.loads(data_blob.content)
     return data
-
-
-def get_blob_to_tempfile(filename, container_name, bbs=None):
-    if not bbs:
-        bbs = BlockBlobService(
-            account_name=config["storage_account_name"],
-            account_key=config["storage_account_key"],
-        )
-    blob_name = remove_container_name_from_blob_path(filename, container_name)
-    td = tempfile.mkdtemp()
-    output_name = os.path.join(td, os.path.basename(filename))
-    bbs.get_blob_to_path(container_name, blob_name, output_name)
-    return output_name
