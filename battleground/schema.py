@@ -44,6 +44,7 @@ class Match(Base):
     panther_team = relationship("Team", back_populates="matches", foreign_keys=[panther_team_id])
     # docker image name and tag
     panther_agent = Column(String(100), nullable=False)
+    num_games = Column(Integer, nullable=False)
     # link to game config json (on cloud storage)
     game_config = Column(String(100), nullable=False)
     # link to logfile (on cloud storage)
