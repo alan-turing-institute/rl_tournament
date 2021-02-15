@@ -24,6 +24,7 @@ from battleground.serialization import serialize_state
 from battleground.schema import Match, Game, session
 
 from battleground.azure_utils import write_file_to_blob, read_json
+from battleground.azure_config import config
 
 # configure the logger
 logger = logging.getLogger("battleground_logger")
@@ -36,11 +37,6 @@ logger.addHandler(c_handler)
 
 VIDEO_BASE_WIDTH = 512
 VIDEO_FPS = 1
-
-STORAGE_ACCOUNT_NAME = "rldsgstorage"
-CONFIG_CONTAINER_NAME = "config-files"
-VIDEO_CONTAINER_NAME = "video-files"
-LOGFILE_CONTAINER_NAME = "log-files"
 
 
 def make_az_url(storage_account_name, container_name, blob_name):
@@ -84,7 +80,8 @@ class Battleground(Environment):
     def setup_games(self, **kwargs):
 
         self.game_config = read_json(
-            blob_name=self.config_file, container_name=CONFIG_CONTAINER_NAME
+            blob_name=self.config_file,
+            container_name=config["config_container_name"]
         )
 
         logger.info("Loaded game config {}".format(self.config_file))
@@ -116,7 +113,10 @@ class Battleground(Environment):
         # save logfile to Cloud storage
         log_path = self.f_handler.baseFilename
         log_filename = os.path.basename(log_path)
-        write_file_to_blob(log_path, log_filename, LOGFILE_CONTAINER_NAME)
+        write_file_to_blob(log_path,
+                           log_filename,
+                           config["logfile_container_name"])
+
         # retrieve the match from the db so we can update its logfile_url
         m = session.query(Match).filter_by(match_id=self.match_id).first()
         if not m:
@@ -124,7 +124,9 @@ class Battleground(Environment):
                 "Unable to retrieve match {} from db".format(self.match_id)
             )
         logfile_url = make_az_url(
-            STORAGE_ACCOUNT_NAME, LOGFILE_CONTAINER_NAME, log_filename
+            config["storage_account_name"],
+            config["logfile_container_name"],
+            log_filename
         )
         m.logfile_url = logfile_url
         session.add(m)
@@ -350,16 +352,19 @@ class Battle(Newgame):
             writer.close()
         logger.info(
             "Saving video to {}/{}".format(
-                VIDEO_CONTAINER_NAME, os.path.basename(video_file_path)
+                config["video_container_name"],
+                os.path.basename(video_file_path)
             )
         )
         video_filename = os.path.basename(video_file_path)
         write_file_to_blob(
-            video_file_path, video_filename, VIDEO_CONTAINER_NAME
+            video_file_path, video_filename, config["video_container_name"]
         )
         logger.info("Battle finished.")
         video_url = make_az_url(
-            STORAGE_ACCOUNT_NAME, VIDEO_CONTAINER_NAME, video_filename
+            config["storage_account_name"],
+            config["video_container_name"],
+            video_filename
         )
         g.video_url = video_url
 
