@@ -11,8 +11,9 @@ if __name__ == "__main__":
 
     bg = Battleground(match_id=match_id)
     # wait for rabbitmq queue to be ready
-    print("will wait for 2 mins")
-    time.sleep(120)
-    print("finished waiting - will setup games")
+#    print("will wait for 2 mins")
+#    time.sleep(120)
+#    print("finished waiting - will setup games")
     bg.setup_games()
+    bg.listen_for_ready()
     bg.play()

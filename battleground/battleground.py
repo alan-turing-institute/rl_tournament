@@ -76,6 +76,10 @@ class Battleground(Environment):
         self.match_id = match_id
         self.num_games = match.num_games
         self.config_file = match.game_config
+        # see if we have established communication with the agents
+        self.pelican_ready = False
+        self.panther_ready = False
+
 
     def setup_games(self, **kwargs):
 
@@ -97,7 +101,48 @@ class Battleground(Environment):
         self.numberOfActiveGames = self.numberOfActiveGames + 1
         logger.info("Game Created")
 
+    def listen_for_ready(self):
+        ready_queue = "rpc_queue_ready"
+
+        if "RABBITMQ_HOST" in os.environ.keys():
+            hostname = os.environ["RABBITMQ_HOST"]
+        else:
+            hostname = "localhost"
+        self.connection = pika.BlockingConnection(
+            pika.ConnectionParameters(host=hostname)
+        )
+
+        self.channel = self.connection.channel()
+
+        self.channel.queue_declare(queue=ready_queue)
+        self.channel.basic_qos(prefetch_count=1)
+
+        self.channel.basic_consume(
+            queue=ready_queue, on_message_callback=self.set_agent_ready,
+            auto_ack=True
+        )
+        logger.info("Listening for agents becoming ready.")
+        self.channel.start_consuming()
+
+    def set_agent_ready(self, ch, method, props, body):
+        """
+        If we receive a message saying "panther_ready" or "pelican_ready",
+        set our flags accordingly, and reply with the correlation_id
+        """
+        print("got a message: {}".format(body))
+        message = body.decode("utf-8")
+        if message == "PANTHER_READY":
+            self.panther_ready = True
+        elif message == "PELICAN_READY":
+            self.pelican_ready = True
+
+        if self.pelican_ready and self.panther_ready:
+            logger.info("Both agents ready, will start match")
+            time.sleep(1)
+            self.channel.stop_consuming()
+
     def play(self):
+        print("In play - will do {} games".format(len(self.activeGames)))
         for i, game in enumerate(self.activeGames):
             video_filename = "match_{}_game_{}_{}.mp4".format(
                 self.match_id, i, time.strftime("%Y-%m-%d_%H-%M-%S")
@@ -186,6 +231,7 @@ class Battle(Newgame):
         self.reset_game()
 
         self.render(self.render_width, self.render_height, self.gamePlayerTurn)
+
 
     def setup_message_queues(self):
         if "RABBITMQ_HOST" in os.environ.keys():
