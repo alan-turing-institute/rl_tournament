@@ -80,7 +80,6 @@ class Battleground(Environment):
         self.pelican_ready = False
         self.panther_ready = False
 
-
     def setup_games(self, **kwargs):
 
         self.game_config = read_json(
@@ -231,7 +230,6 @@ class Battle(Newgame):
         self.reset_game()
 
         self.render(self.render_width, self.render_height, self.gamePlayerTurn)
-
 
     def setup_message_queues(self):
         if "RABBITMQ_HOST" in os.environ.keys():
