@@ -95,9 +95,9 @@ class Match(Base):
             return None
 
     def score(self, pelican_or_panther):
-        if pelican_or_panther not in ["pelican","panther"]:
+        if pelican_or_panther not in ["pelican", "panther"]:
             raise RuntimeError(
-                "pelican_or_panther must be 'pelican' or 'panther', not {}"\
+                "pelican_or_panther must be 'pelican' or 'panther', not {}"
                 .format(pelican_or_panther))
         n_wins = 0
         for game in self.games:
