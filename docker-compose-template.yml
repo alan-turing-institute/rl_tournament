@@ -16,17 +16,20 @@ services:
       dockerfile: Dockerfile_battleground
     environment:
     - RABBITMQ_HOST=rabbitmq
-    - MATCH_ID=1
+    - MATCH_ID=<MATCH_ID>
+    - NUM_GAMES=<NUM_GAMES>
     networks:
     - plark_nw
     tty: true
     depends_on:
       - messages
-    command: "/bin/bash"
+      - pelican
+      - panther
+    command: "./run_match.sh"
 
   pelican:
     container_name: pelican_agent
-    image: plark_hunt/team_test:latest
+    image: <PELICAN_IMAGE>
     environment:
     - RABBITMQ_HOST=rabbitmq
     networks:
@@ -39,7 +42,7 @@ services:
 
   panther:
     container_name: panther_agent
-    image: plark_hunt/team_test:latest
+    image: <PANTHER_IMAGE>
     environment:
     - RABBITMQ_HOST=rabbitmq
     networks:

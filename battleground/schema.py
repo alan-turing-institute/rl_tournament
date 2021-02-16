@@ -1,112 +1,114 @@
 """
-Marshmallow schemas for serializing/deserializing game objects
-so that they can be sent as JSON
+Database schema for RL tournament
 """
 
-from marshmallow import Schema, fields, post_load
-
-import plark_game
-from plark_game.classes.sonobuoy import Sonobuoy
-from plark_game.classes.torpedo import Torpedo
-
-
-class SonobuoySchema(Schema):
-    type = fields.Str()
-    col = fields.Int(allow_none=True)
-    row = fields.Int(allow_none=True)
-    range = fields.Int()
-    state = fields.Str()
-    size = fields.Int()
-
-    @post_load
-    def make_sonobuoy(self, data, **kwargs):
-        sb = Sonobuoy(data["range"])
-        sb.type = data["type"]
-        sb.col = data["col"]
-        sb.row = data["row"]
-        sb.state = data["state"]
-        sb.size = data["size"]
-        return sb
+from sqlalchemy import Column, ForeignKey, Integer, String, DateTime
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine
 
 
-class TorpedoSchema(Schema):
-    id = fields.Str(allow_none=True)
-    type = fields.Str()
-    col = fields.Int(allow_none=True)
-    row = fields.Int(allow_none=True)
-    turn = fields.Int()
-    size = fields.Int()
-    speed = fields.List(fields.Int(), allow_none=True)
-    searchRadius = fields.Int(allow_none=True)
+from .db_config import DB_CONNECTION_STRING
 
-    @post_load
-    def make_torpedo(self, data, **kwargs):
-        t = Torpedo(**data)
-        return t
+Base = declarative_base()
 
 
-def serializer(input_obj, mode="serialize"):
-    """
-    Recursive function to convert any Torpedo or Sonobuoy objects in the state
-    into their JSON representations.
+win_codes = {
+    "BINGO": "panther",  # Pelican has run out of fuel, needs to return
+    "WINCHESTER": "panther",  # Pelican has no more torpedos
+    "ESCAPE": "panther",  # Panther has escaped
+    "PELICANWIN": "pelican",  # Pelican destroyed Panther
+}
 
-    Parameters
-    ==========
-    input_obj: could be dict, list, Torpedo, or Sonobuoy
-    mode: str, must be "serialize" or "deserialize"
 
-    Returns
-    =======
-    output: json-serialized, or de-serialized, version of the input_obj
-    """
-    if mode not in ["serialize", "deserialize"]:
-        raise RuntimeError(
-            "mode must be one of 'serialize', 'deserialize', not {}".format(
-                mode
-            )
-        )
-    output = None
-    sbs = SonobuoySchema()
-    ts = TorpedoSchema()
-    if isinstance(input_obj, dict):
-        # if we are deserializing, create Sonobuoy or Torpedo objects out of
-        # dicts that have the appropriate 'type'
-        if (
-            mode == "deserialize"
-            and "type" in input_obj.keys()
-            and input_obj["type"] == "SONOBUOY"
-        ):
-            output = sbs.load(input_obj)
-        elif (
-            mode == "deserialize"
-            and "type" in input_obj.keys()
-            and input_obj["type"] == "TORPEDO"
-        ):
-            output = ts.load(input_obj)
-        # for all other dicts, recursively look through their keys, values
+class Team(Base):
+    __tablename__ = "team"
+    team_id = Column(
+        Integer, primary_key=True, nullable=False, autoincrement=True
+    )
+    team_name = Column(String(100), nullable=False)
+    team_members = Column(String(1000), nullable=False)
+    join_condition = "or_("
+    join_condition += "Team.team_id==Match.pelican_team_id"
+    join_condition += ","
+    join_condition += "Team.team_id==Match.panther_team_id"
+    join_condition += ")"
+    matches = relationship(
+        "Match",
+        uselist=True,
+        primaryjoin=join_condition,
+    )
+
+
+class Match(Base):
+    __tablename__ = "match"
+    match_id = Column(
+        Integer, primary_key=True, nullable=False, autoincrement=True
+    )
+    match_time = Column(DateTime, nullable=False)
+    pelican_team_id = Column(Integer, ForeignKey("team.team_id"))
+    pelican_team = relationship(
+        "Team", back_populates="matches", foreign_keys=[pelican_team_id]
+    )
+    # docker image name and tag
+    pelican_agent = Column(String(100), nullable=False)
+    panther_team_id = Column(Integer, ForeignKey("team.team_id"))
+    panther_team = relationship(
+        "Team", back_populates="matches", foreign_keys=[panther_team_id]
+    )
+    # docker image name and tag
+    panther_agent = Column(String(100), nullable=False)
+    num_games = Column(Integer, nullable=False)
+    # link to game config json (on cloud storage)
+    game_config = Column(String(100), nullable=False)
+    # link to logfile (on cloud storage)
+    logfile_url = Column(String(100), nullable=False)
+    games = relationship("Game", uselist=True, back_populates="match")
+
+    def winner(self):
+        n_wins_pelican = 0
+        n_wins_panther = 0
+        n_draws = 0
+        for game in self.games:
+            if game.winner() == "pelican":
+                n_wins_pelican += 1
+            elif game.winner() == "panther":
+                n_wins_panther += 1
+            else:
+                n_draws += 1
+        if n_wins_pelican > n_wins_panther:
+            return "pelican"
+        elif n_wins_panther > n_wins_pelican:
+            return "panther"
         else:
-            output = {}
-            for k, v in input_obj.items():
-                output[k] = serializer(v, mode)
-    elif isinstance(input_obj, list):
-        output = []
-        for item in input_obj:
-            output.append(serializer(item, mode))
-    # if we have an instance of Sonobuoy or Torpedo,
-    # use marshmallow schema to serialize
-    elif isinstance(input_obj, plark_game.classes.sonobuoy.Sonobuoy):
-        output = sbs.dump(input_obj)
-    elif isinstance(input_obj, plark_game.classes.torpedo.Torpedo):
-        output = ts.dump(input_obj)
-    # any other type, just return as is
-    else:
-        output = input_obj
-    return output
+            return "draw"
 
 
-def serialize_state(game_state):
-    return serializer(game_state, "serialize")
+class Game(Base):
+    __tablename__ = "game"
+    game_id = Column(
+        Integer, primary_key=True, nullable=False, autoincrement=True
+    )
+    num_turns = Column(Integer, nullable=False)
+    result_code = Column(String(100), nullable=False)
+    # link to video (on cloud storage)
+    video_url = Column(String(100), nullable=False)
+    match = relationship("Match", back_populates="games")
+    match_id = Column(Integer, ForeignKey("match.match_id"))
+
+    def winner(self):
+        # look up based on result code
+        return win_codes[self.result_code]
 
 
-def deserialize_state(game_state):
-    return serializer(game_state, "deserialize")
+engine = create_engine(DB_CONNECTION_STRING)
+
+Base.metadata.create_all(engine)
+# Bind the engine to the metadata of the Base class so that the
+# declaratives can be accessed through a DBSession instance
+Base.metadata.bind = engine
+
+DBSession = sessionmaker(bind=engine, autoflush=False)
+# global database session used by default throughout the package
+session = DBSession()
