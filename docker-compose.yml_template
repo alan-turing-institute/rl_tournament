@@ -11,9 +11,7 @@ services:
 
   battleground:
     container_name: plark_battleground
-    build:
-      context: .
-      dockerfile: Dockerfile_battleground
+    image: turingrldsg.azurecr.io/battleground:latest
     environment:
     - RABBITMQ_HOST=rabbitmq
     networks:
@@ -25,7 +23,7 @@ services:
 
   pelican:
     container_name: pelican_agent
-    image: plark_hunt/team_test:latest
+    image: turingrldsg.azurecr.io/<<PELICAN>>
     environment:
     - RABBITMQ_HOST=rabbitmq
     networks:
@@ -37,7 +35,7 @@ services:
 
   panther:
     container_name: panther_agent
-    image: plark_hunt/team_test:latest
+    image: turingrldsg.azurecr.io/<<PANTHER>>
     environment:
     - RABBITMQ_HOST=rabbitmq
     networks:
@@ -46,7 +44,6 @@ services:
     depends_on: 
     - messages
     command: "python3 Combatant/combatant.py panther"
-
 
 networks:
   plark_nw:

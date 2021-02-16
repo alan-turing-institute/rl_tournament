@@ -1,10 +1,12 @@
-.PHONY: base agent agent_test
+.PHONY: login build push
 
-base:
-	docker build -t plark_hunt/base:latest -f Dockerfile_base .
+REGISTRY = turingrldsg.azurecr.io
 
-agent:
-	docker build -t plark_hunt/team_$(label):latest -f Dockerfile_agent .
+login:
+	docker login $(REGISTRY) -u ${RL_ADMIN_TOKEN_NAME} -p ${RL_ADMIN_TOKEN} 
 
-agent_test:
-	docker run plark_hunt/team_$(label):latest tests/test_docker/test_agent.sh
+build:
+	docker build -t $(REGISTRY)/battleground:latest -f Dockerfile .
+
+push:
+	docker push $(REGISTRY)/battleground:latest

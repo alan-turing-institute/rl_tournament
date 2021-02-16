@@ -1,5 +1,0 @@
-FROM plark_hunt/base:latest
-
-ADD . /rl_tournament
-
-WORKDIR /rl_tournament
