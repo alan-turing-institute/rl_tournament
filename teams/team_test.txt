@@ -1,2 +1,2 @@
-latest
-baseline
+pelican_latest
+panther_latest
