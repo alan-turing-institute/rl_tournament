@@ -84,6 +84,33 @@ class Match(Base):
         else:
             return "draw"
 
+    def winning_team(self):
+        if not self.is_finished():
+            return None
+        if self.winner() == "pelican":
+            return self.pelican_team
+        elif self.winner() == "panther":
+            return self.panther_team
+        else:
+            return None
+
+    def score(self, pelican_or_panther):
+        if pelican_or_panther not in ["pelican","panther"]:
+            raise RuntimeError(
+                "pelican_or_panther must be 'pelican' or 'panther', not {}"\
+                .format(pelican_or_panther))
+        n_wins = 0
+        for game in self.games:
+            if game.winner() == pelican_or_panther:
+                n_wins += 1
+        return n_wins
+
+    def is_finished(self):
+        if len(self.games) == self.num_games:
+            return True
+        else:
+            return False
+
 
 class Game(Base):
     __tablename__ = "game"
