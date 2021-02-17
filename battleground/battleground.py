@@ -236,10 +236,17 @@ class Battle(Newgame):
             hostname = os.environ["RABBITMQ_HOST"]
         else:
             hostname = "localhost"
-        self.connection = pika.BlockingConnection(
-            pika.ConnectionParameters(host=hostname)
-        )
-
+        connected = False
+        while not connected:
+            try:
+                self.connection = pika.BlockingConnection(
+                    pika.ConnectionParameters(host=hostname)
+                )
+                connected=True
+            except(pika.exceptions.AMQPConnectionError,
+                   pika.adapters.utils.connection_workflow.AMQPConnectorSocketConnectError):
+                logger.info("Waiting for connection...")
+                time.sleep(2)
         self.channel = self.connection.channel()
 
         result = self.channel.queue_declare(queue="", exclusive=True)
