@@ -7,6 +7,10 @@ import requests
 # import subprocess
 # import create_match
 
+from battleground.db_utils import create_match
+
+# match_finished
+
 # CONST_TEAMS_LIST = ["team1", "team2", "team3", "team4", "team5", "team_test"]
 CONST_TEAMS_LIST = ["team_test"]
 CONST_GITHUB_ADDRESS = (
@@ -93,8 +97,16 @@ def run_tournament():
 
         pelican, panther = match.split()
 
+        pelican_team, pelican_image_tag = pelican.split(":")
+        panther_team, panther_image_tag = panther.split(":")
+        # create the match in the database
+        match_id = create_match(
+            pelican_team, pelican_image_tag, panther_team, panther_image_tag
+        )
+
         match_yaml = match_yaml.replace("<<PELICAN>>", pelican)
         match_yaml = match_yaml.replace("<<PANTHER>>", panther)
+        match_yaml = match_yaml.replace("<<MATCH_ID>>", str(match_id))
 
         # get the right config filename from Azure storage
 
@@ -110,7 +122,9 @@ def run_tournament():
 
         # cwd = os.getcwd()
 
-        # os.chdir("/tmp")
+        # while not match_finished(match_id):
+        #     print("Checking for match finish ...")
+        #     time.sleep(5)
 
         # subprocess.Popen(["docker-compose", "up"])
 

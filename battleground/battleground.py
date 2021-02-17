@@ -10,6 +10,10 @@ import pika
 import uuid
 import time
 
+from pika.adapters.utils.connection_workflow import (
+    AMQPConnectorSocketConnectError,
+)
+
 import imageio
 import PIL.Image
 
@@ -76,12 +80,15 @@ class Battleground(Environment):
         self.match_id = match_id
         self.num_games = match.num_games
         self.config_file = match.game_config
+        # see if we have established communication with the agents
+        self.pelican_ready = False
+        self.panther_ready = False
 
     def setup_games(self, **kwargs):
 
         self.game_config = read_json(
             blob_name=self.config_file,
-            container_name=config["config_container_name"]
+            container_name=config["config_container_name"],
         )
 
         logger.info("Loaded game config {}".format(self.config_file))
@@ -97,7 +104,49 @@ class Battleground(Environment):
         self.numberOfActiveGames = self.numberOfActiveGames + 1
         logger.info("Game Created")
 
+    def listen_for_ready(self):
+        ready_queue = "rpc_queue_ready"
+
+        if "RABBITMQ_HOST" in os.environ.keys():
+            hostname = os.environ["RABBITMQ_HOST"]
+        else:
+            hostname = "localhost"
+        self.connection = pika.BlockingConnection(
+            pika.ConnectionParameters(host=hostname)
+        )
+
+        self.channel = self.connection.channel()
+
+        self.channel.queue_declare(queue=ready_queue)
+        self.channel.basic_qos(prefetch_count=1)
+
+        self.channel.basic_consume(
+            queue=ready_queue,
+            on_message_callback=self.set_agent_ready,
+            auto_ack=True,
+        )
+        logger.info("Listening for agents becoming ready.")
+        self.channel.start_consuming()
+
+    def set_agent_ready(self, ch, method, props, body):
+        """
+        If we receive a message saying "panther_ready" or "pelican_ready",
+        set our flags accordingly, and reply with the correlation_id
+        """
+        print("got a message: {}".format(body))
+        message = body.decode("utf-8")
+        if message == "PANTHER_READY":
+            self.panther_ready = True
+        elif message == "PELICAN_READY":
+            self.pelican_ready = True
+
+        if self.pelican_ready and self.panther_ready:
+            logger.info("Both agents ready, will start match")
+            time.sleep(1)
+            self.channel.stop_consuming()
+
     def play(self):
+        print("In play - will do {} games".format(len(self.activeGames)))
         for i, game in enumerate(self.activeGames):
             video_filename = "match_{}_game_{}_{}.mp4".format(
                 self.match_id, i, time.strftime("%Y-%m-%d_%H-%M-%S")
@@ -113,9 +162,9 @@ class Battleground(Environment):
         # save logfile to Cloud storage
         log_path = self.f_handler.baseFilename
         log_filename = os.path.basename(log_path)
-        write_file_to_blob(log_path,
-                           log_filename,
-                           config["logfile_container_name"])
+        write_file_to_blob(
+            log_path, log_filename, config["logfile_container_name"]
+        )
 
         # retrieve the match from the db so we can update its logfile_url
         m = session.query(Match).filter_by(match_id=self.match_id).first()
@@ -126,7 +175,7 @@ class Battleground(Environment):
         logfile_url = make_az_url(
             config["storage_account_name"],
             config["logfile_container_name"],
-            log_filename
+            log_filename,
         )
         m.logfile_url = logfile_url
         session.add(m)
@@ -192,10 +241,19 @@ class Battle(Newgame):
             hostname = os.environ["RABBITMQ_HOST"]
         else:
             hostname = "localhost"
-        self.connection = pika.BlockingConnection(
-            pika.ConnectionParameters(host=hostname)
-        )
-
+        connected = False
+        while not connected:
+            try:
+                self.connection = pika.BlockingConnection(
+                    pika.ConnectionParameters(host=hostname)
+                )
+                connected = True
+            except (
+                pika.exceptions.AMQPConnectionError,
+                AMQPConnectorSocketConnectError,
+            ):
+                logger.info("Waiting for connection...")
+                time.sleep(2)
         self.channel = self.connection.channel()
 
         result = self.channel.queue_declare(queue="", exclusive=True)
@@ -353,7 +411,7 @@ class Battle(Newgame):
         logger.info(
             "Saving video to {}/{}".format(
                 config["video_container_name"],
-                os.path.basename(video_file_path)
+                os.path.basename(video_file_path),
             )
         )
         video_filename = os.path.basename(video_file_path)
@@ -364,7 +422,7 @@ class Battle(Newgame):
         video_url = make_az_url(
             config["storage_account_name"],
             config["video_container_name"],
-            video_filename
+            video_filename,
         )
         g.video_url = video_url
 

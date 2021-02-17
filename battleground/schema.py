@@ -66,23 +66,51 @@ class Match(Base):
     logfile_url = Column(String(100), nullable=False)
     games = relationship("Game", uselist=True, back_populates="match")
 
-    def winner(self):
-        n_wins_pelican = 0
-        n_wins_panther = 0
-        n_draws = 0
+    def score(self, pelican_or_panther):
+        if pelican_or_panther not in ["pelican", "panther"]:
+            raise RuntimeError(
+                "pelican_or_panther must be 'pelican' or 'panther', not {}"
+                .format(pelican_or_panther))
+        n_wins = 0
         for game in self.games:
-            if game.winner() == "pelican":
-                n_wins_pelican += 1
-            elif game.winner() == "panther":
-                n_wins_panther += 1
-            else:
-                n_draws += 1
-        if n_wins_pelican > n_wins_panther:
+            if game.winner() == pelican_or_panther:
+                n_wins += 1
+        return n_wins
+
+    @property
+    def pelican_score(self):
+        return self.score("pelican")
+
+    @property
+    def panther_score(self):
+        return self.score("panther")
+
+    @property
+    def winner(self):
+        if self.pelican_score > self.panther_score:
             return "pelican"
-        elif n_wins_panther > n_wins_pelican:
+        elif self.panther_score > self.pelican_score:
             return "panther"
         else:
             return "draw"
+
+    @property
+    def winning_team(self):
+        if not self.is_finished:
+            return None
+        if self.winner() == "pelican":
+            return self.pelican_team
+        elif self.winner() == "panther":
+            return self.panther_team
+        else:
+            return None
+
+    @property
+    def is_finished(self):
+        if len(self.games) == self.num_games:
+            return True
+        else:
+            return False
 
 
 class Game(Base):

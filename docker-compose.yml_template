@@ -14,13 +14,13 @@ services:
     image: turingrldsg.azurecr.io/battleground:latest
     environment:
     - RABBITMQ_HOST=rabbitmq
-    - MATCH_ID=1
+    - MATCH_ID=<<MATCH_ID>>
     networks:
     - plark_nw
     tty: true
     depends_on:
       - messages
-    command: "/bin/bash"
+    command: "./run_match.sh"
 
   pelican:
     container_name: pelican_agent
