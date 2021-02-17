@@ -4,9 +4,12 @@
 import os
 import requests
 
-import subprocess
+# import subprocess
+# import create_match
 
-from battleground.db_utils import create_match, match_finished
+from battleground.db_utils import create_match
+
+# match_finished
 
 # CONST_TEAMS_LIST = ["team1", "team2", "team3", "team4", "team5", "team_test"]
 CONST_TEAMS_LIST = ["team_test"]
@@ -98,36 +101,41 @@ def run_tournament():
         panther_team, panther_image_tag = panther.split(":")
         # create the match in the database
         match_id = create_match(
-            pelican_team,
-            pelican_image_tag,
-            panther_team,
-            panther_image_tag
+            pelican_team, pelican_image_tag, panther_team, panther_image_tag
         )
 
         match_yaml = match_yaml.replace("<<PELICAN>>", pelican)
         match_yaml = match_yaml.replace("<<PANTHER>>", panther)
         match_yaml = match_yaml.replace("<<MATCH_ID>>", str(match_id))
 
-        with open(CONST_TEMP_DOCKER_COMPOSE, "w") as file:
-            file.write(match_yaml)
+        # get the right config filename from Azure storage
 
-        cwd = os.getcwd()
+        # create a match in the DB
+        # match_id = create_match(pelican_team,
+        # pelican_agent, panther_team, panther_agent, game_config)
 
-        os.chdir("/tmp")
+        # TODO make sure that the teams is in the database
 
-        subprocess.Popen(["docker-compose", "up"])
+        # WRITE docker-compose
+        # with open(CONST_TEMP_DOCKER_COMPOSE, "w") as file:
+        #     file.write(match_yaml)
 
-        # check the database for match results
-        import time
+        # cwd = os.getcwd()
 
-        while not match_finished(match_id):
-            print("Checking for match finish ...")
-            time.sleep(5)
+        # while not match_finished(match_id):
+        #     print("Checking for match finish ...")
+        #     time.sleep(5)
 
+        # subprocess.Popen(["docker-compose", "up"])
 
-        subprocess.run(["docker-compose", "down"])
+        # WHILE not match completed (check DB for the number
+        # of games in the match and count the number of completed games)
+        #    time.sleep(1)
 
-        os.chdir(cwd)
+        # subprocess.run(["docker-compose", "down"])
+
+        # os.chdir(cwd)
+
 
 def clean_up():
     """
