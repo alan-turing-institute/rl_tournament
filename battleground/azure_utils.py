@@ -3,7 +3,7 @@ import json
 
 from azure.storage.blob import (
     BlockBlobService,
-    ContainerPermissions,
+    # ContainerPermissions,
 )
 from azure.common import AzureMissingResourceHttpError
 

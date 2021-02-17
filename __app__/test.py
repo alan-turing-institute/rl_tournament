@@ -4,7 +4,8 @@
 import os
 import requests
 
-import subprocess
+# import subprocess
+# import create_match
 
 # CONST_TEAMS_LIST = ["team1", "team2", "team3", "team4", "team5", "team_test"]
 CONST_TEAMS_LIST = ["team_test"]
@@ -95,24 +96,31 @@ def run_tournament():
         match_yaml = match_yaml.replace("<<PELICAN>>", pelican)
         match_yaml = match_yaml.replace("<<PANTHER>>", panther)
 
-        with open(CONST_TEMP_DOCKER_COMPOSE, "w") as file:
-            file.write(match_yaml)
+        # get the right config filename from Azure storage
 
-        cwd = os.getcwd()
+        # create a match in the DB
+        # match_id = create_match(pelican_team,
+        # pelican_agent, panther_team, panther_agent, game_config)
 
-        os.chdir("/tmp")
+        # TODO make sure that the teams is in the database
 
-        subprocess.Popen(["docker-compose", "up"])
+        # WRITE docker-compose
+        # with open(CONST_TEMP_DOCKER_COMPOSE, "w") as file:
+        #     file.write(match_yaml)
 
-        # check the database for match results
-        import time
+        # cwd = os.getcwd()
 
-        time.sleep(20)
-        # when to stop the process?
+        # os.chdir("/tmp")
 
-        subprocess.run(["docker-compose", "down"])
+        # subprocess.Popen(["docker-compose", "up"])
 
-        os.chdir(cwd)
+        # WHILE not match completed (check DB for the number
+        # of games in the match and count the number of completed games)
+        #    time.sleep(1)
+
+        # subprocess.run(["docker-compose", "down"])
+
+        # os.chdir(cwd)
 
 
 def clean_up():
