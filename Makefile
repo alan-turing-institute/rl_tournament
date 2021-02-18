@@ -7,6 +7,5 @@ login:
 
 build:
 	docker build -t $(REGISTRY)/battleground:latest -f Dockerfile .
-
 push:
 	docker push $(REGISTRY)/battleground:latest

@@ -11,25 +11,20 @@ services:
 
   battleground:
     container_name: plark_battleground
-    build:
-      context: .
-      dockerfile: Dockerfile_battleground
+    image: turingrldsg.azurecr.io/battleground:latest
     environment:
     - RABBITMQ_HOST=rabbitmq
-    - MATCH_ID=<MATCH_ID>
-    - NUM_GAMES=<NUM_GAMES>
+    - MATCH_ID=<<MATCH_ID>>
     networks:
     - plark_nw
     tty: true
     depends_on:
       - messages
-      - pelican
-      - panther
     command: "./run_match.sh"
 
   pelican:
     container_name: pelican_agent
-    image: <PELICAN_IMAGE>
+    image: turingrldsg.azurecr.io/<<PELICAN>>
     environment:
     - RABBITMQ_HOST=rabbitmq
     networks:
@@ -42,7 +37,7 @@ services:
 
   panther:
     container_name: panther_agent
-    image: <PANTHER_IMAGE>
+    image: turingrldsg.azurecr.io/<<PANTHER>>
     environment:
     - RABBITMQ_HOST=rabbitmq
     networks:
@@ -51,7 +46,6 @@ services:
     depends_on:
     - messages
     command: "python3 Combatant/combatant.py panther"
-
 
 networks:
   plark_nw:
