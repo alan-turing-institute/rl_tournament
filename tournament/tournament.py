@@ -253,7 +253,7 @@ def clean_up():
     """
 
     os.remove(CONST_TOURNAMENT_FILE)
-    # os.remove(CONST_TEMP_DOCKER_COMPOSE)
+    os.remove(CONST_TEMP_DOCKER_COMPOSE)
 
 
 if __name__ == "__main__":
