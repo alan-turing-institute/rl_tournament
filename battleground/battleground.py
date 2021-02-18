@@ -5,6 +5,7 @@ RabbitMQ messages.
 
 import os
 import json
+import datetime
 import numpy as np
 import pika
 import uuid
@@ -59,7 +60,7 @@ class Battleground(Environment):
     of creating 'Newgame' instances, we create 'Battle' instances.
     """
 
-    def __init__(self, match_id, **kwargs):
+    def __init__(self, match_id, dbsession=session, **kwargs):
         super().__init__(**kwargs)
         match_id = int(match_id)
         # new logfile name for this match
@@ -72,7 +73,7 @@ class Battleground(Environment):
         )
         self.f_handler.setFormatter(formatter)
         logger.addHandler(self.f_handler)
-        match = session.query(Match).filter_by(match_id=match_id).first()
+        match = dbsession.query(Match).filter_by(match_id=match_id).first()
         if not match:
             raise RuntimeError(
                 "Could not find match {} in DB".format(match_id)
@@ -372,7 +373,7 @@ class Battle(Newgame):
 
         g = Game()
         g.match = parent_match
-
+        g.game_time = datetime.datetime.now()
         if video_file_path is not None:
             writer = imageio.get_writer(video_file_path, fps=VIDEO_FPS)
         else:

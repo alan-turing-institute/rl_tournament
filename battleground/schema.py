@@ -1,8 +1,25 @@
 """
-Database schema for RL tournament
+Database schema for RL tournament.
+
+Basic idea:
+
+* A TEAM is a team of participants in the challenge.
+The corresponding table has columns for Team Name,
+and Team Members.
+Each TEAM will participate in one or more TOURNAMENTS.
+* A TOURNAMENT will take place every day in the challenge.  All TEAMs that
+take part in the TOURNAMENT will pit their agents against those of all the
+other teams.  Each of these contests is a MATCH.
+* A MATCH is a contest between a "Pelican" agent from one team, and a
+"Panther" agent from another team. It will consist of multiple GAMES.
+The winner of the MATCH is the TEAM whose agent won the most GAMES.
+* A GAME is an individual round of the Plark game.  It will finish when
+the Panther escapes, or the Pelican runs out of torpedos, or when the
+Pelican destroys the Panther.
+
 """
 
-from sqlalchemy import Column, ForeignKey, Integer, String, DateTime
+from sqlalchemy import Table, Column, ForeignKey, Integer, String, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import sessionmaker
@@ -20,6 +37,13 @@ win_codes = {
     "ESCAPE": "panther",  # Panther has escaped
     "PELICANWIN": "pelican",  # Pelican destroyed Panther
 }
+
+assoc_table = Table(
+    "association",
+    Base.metadata,
+    Column("team_id", Integer, ForeignKey("team.team_id")),
+    Column("tournament_id", Integer, ForeignKey("tournament.tournament_id")),
+)
 
 
 class Team(Base):
@@ -39,6 +63,27 @@ class Team(Base):
         uselist=True,
         primaryjoin=join_condition,
     )
+    tournaments = relationship(
+        "Tournament",
+        uselist=True,
+        back_populates="teams",
+        secondary=assoc_table,
+    )
+
+
+class Tournament(Base):
+    __tablename__ = "tournament"
+    tournament_id = Column(
+        Integer, primary_key=True, nullable=False, autoincrement=True
+    )
+    tournament_time = Column(DateTime, nullable=False)
+    teams = relationship(
+        "Team",
+        uselist=True,
+        back_populates="tournaments",
+        secondary=assoc_table,
+    )
+    matches = relationship("Match", uselist=True, back_populates="tournament")
 
 
 class Match(Base):
@@ -47,6 +92,11 @@ class Match(Base):
         Integer, primary_key=True, nullable=False, autoincrement=True
     )
     match_time = Column(DateTime, nullable=False)
+    tournament_id = Column(Integer, ForeignKey("tournament.tournament_id"))
+    tournament = relationship(
+        "Tournament", back_populates="matches", foreign_keys=[tournament_id]
+    )
+
     pelican_team_id = Column(Integer, ForeignKey("team.team_id"))
     pelican_team = relationship(
         "Team", back_populates="matches", foreign_keys=[pelican_team_id]
@@ -69,8 +119,12 @@ class Match(Base):
     def score(self, pelican_or_panther):
         if pelican_or_panther not in ["pelican", "panther"]:
             raise RuntimeError(
-                "pelican_or_panther must be 'pelican' or 'panther', not {}"
-                .format(pelican_or_panther))
+                """
+                pelican_or_panther must be 'pelican' or 'panther', not {}
+                """.format(
+                    pelican_or_panther
+                )
+            )
         n_wins = 0
         for game in self.games:
             if game.winner() == pelican_or_panther:
@@ -118,6 +172,7 @@ class Game(Base):
     game_id = Column(
         Integer, primary_key=True, nullable=False, autoincrement=True
     )
+    game_time = Column(DateTime, nullable=False)
     num_turns = Column(Integer, nullable=False)
     result_code = Column(String(100), nullable=False)
     # link to video (on cloud storage)
