@@ -17,7 +17,8 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(funcName)s: %(message)s",
 )
 
-# CONST_TEAMS_LIST = ["team1", "team2", "team3", "team4", "team5", "team_test"]
+# CONST_TEAMS_LIST = ["team_1",
+# "team_2", "team_3", "team_4", "team_5", "team_test"]
 CONST_TEAMS_LIST = ["team_test"]
 CONST_GITHUB_ADDRESS = (
     "https://raw.githubusercontent.com/"
