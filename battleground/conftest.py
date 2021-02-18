@@ -15,10 +15,20 @@ if os.name == "posix":
 else:
     TMPDIR = "%TMP%"
 
-testengine = create_engine("sqlite:///{}/plarktest.db".format(TMPDIR))
+TMPDB = os.path.join(TMPDIR, "plarktest.db")
+
+testengine = create_engine("sqlite:///{}".format(TMPDB))
 
 Base.metadata.create_all(testengine)
 Base.metadata.bind = testengine
+
+
+def remove_test_db():
+    """
+    Remove the sqlite file for the test database
+    """
+    if os.path.exists(TMPDB):
+        os.remove(TMPDB)
 
 
 @contextmanager

@@ -10,7 +10,12 @@ import time
 
 from battleground.azure_config import config as az_config
 from battleground.azure_utils import list_directory
-from battleground.db_utils import create_match, match_finished
+from battleground.db_utils import (
+    create_db_team,
+    create_db_tournament,
+    create_db_match,
+    match_finished,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -89,6 +94,13 @@ def create_tournament():
     logging.info(
         "Tournament file %s has been created." % (CONST_TOURNAMENT_FILE)
     )
+    # add the teams and tournament to the database
+    participating_teams = [team.split(":")[0] for team in pelicans + panthers]
+    participating_teams = list(set(participating_teams))
+    for team in participating_teams:
+        create_db_team(team, "members_placeholder")
+    tournament_id = create_db_tournament(participating_teams)
+    return tournament_id
 
 
 def get_match_config_file():
@@ -131,7 +143,7 @@ def get_match_config_file():
     return config_file_name
 
 
-def run_tournament():
+def run_tournament(tournament_id):
     """
     Runs the tournament by running multiple docker-compose files
 
@@ -160,7 +172,7 @@ def run_tournament():
         return False, "Could not find a match config file."
 
     no_matches = len(matches)
-    logging.info("The tournament will have %d matche(s)" % (no_matches))
+    logging.info("The tournament will have %d match(es)" % (no_matches))
 
     for match_idx, match in enumerate(matches):
 
@@ -176,12 +188,13 @@ def run_tournament():
         # register new match
         try:
             # create the match in the database
-            match_id = create_match(
+            match_id = create_db_match(
                 pelican_team,
                 pelican_image_tag,
                 panther_team,
                 panther_image_tag,
                 game_config=config_file_name,
+                tournament_id=tournament_id,
             )
 
         except RuntimeError:
@@ -258,9 +271,9 @@ def clean_up():
 
 if __name__ == "__main__":
 
-    create_tournament()
+    tid = create_tournament()
 
-    success, error = run_tournament()
+    success, error = run_tournament(tid)
 
     clean_up()
 
