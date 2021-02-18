@@ -2,16 +2,11 @@
 Test battleground.py module
 """
 
-import os
-import json
-import datetime
-
-from battleground.conftest import test_session_scope, remove_test_db
-from battleground.schema import Match
+from battleground.conftest import test_session_scope
+# from battleground.schema import Match
 from battleground.db_utils import create_db_match
 from battleground.battleground import (
     Battleground,
-    Battle,
 )
 
 

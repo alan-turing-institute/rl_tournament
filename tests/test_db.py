@@ -1,5 +1,5 @@
 import datetime
-from battleground.conftest import test_session_scope, remove_test_db
+from battleground.conftest import test_session_scope
 from battleground.schema import Team, Tournament, Match, Game
 
 

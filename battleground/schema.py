@@ -119,7 +119,9 @@ class Match(Base):
     def score(self, pelican_or_panther):
         if pelican_or_panther not in ["pelican", "panther"]:
             raise RuntimeError(
-                "pelican_or_panther must be 'pelican' or 'panther', not {}".format(
+                """
+                pelican_or_panther must be 'pelican' or 'panther', not {}
+                """.format(
                     pelican_or_panther
                 )
             )

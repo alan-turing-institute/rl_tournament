@@ -1,9 +1,7 @@
 from battleground.conftest import test_session_scope
-from battleground.schema import Team, Tournament, Match, Game
+from battleground.schema import Team
 from battleground.db_utils import (
     create_db_team,
-    create_db_tournament,
-    create_db_match,
 )
 
 
