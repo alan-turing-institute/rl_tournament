@@ -253,7 +253,11 @@ def clean_up():
     """
 
     os.remove(CONST_TOURNAMENT_FILE)
-    os.remove(CONST_TEMP_DOCKER_COMPOSE)
+
+    try:
+        os.remove(CONST_TEMP_DOCKER_COMPOSE)
+    except FileNotFoundError:
+        print("no need to delete %s" % (CONST_TEMP_DOCKER_COMPOSE))
 
 
 if __name__ == "__main__":
