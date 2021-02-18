@@ -1,43 +1,124 @@
 # Reinforcement Learning Tournament
 
 This repository contains code to allow reinforcement learning agents to run the "Hunting the Plark" game in a tournament environment.
-The game itself, and associated classes and configurations are in the repository
-https://github.com/montvieux/plark_ai_public
-This repository extends that code by:
-* Adding a new `Battle` class that extends `Newgame`, and allows agent-vs-agent play with optional output to a video file.
-* Adding `Combatant_Pelican` and `Combatant_Panther` classes that act as wrappers for the agents, and handle communication with the Battle instance.
-* Communication is done via RabbitMQ messages - the Battle sends a JSON representation of the game state, and the agents reply with a string representation of their chosen action.
-* Docker containers for the Battleground and Combatants are run together using `docker-compose`.
-* SQL database and SQLAlchemy ORM keeps track of Teams, Matches, and individual Games.
-* Logfiles and video files are stored on Azure blob storage (and URLs for them are stored in the database).
+
+The documentation here is aimed at participants in the Reinforcement Learning Data Study Group.  
+Developers of this package can find documentation [here](developers.md).
+
+# How to participate in the Tournament
+
+### Before we get started...
+
+Some warnings:
+
+:warning: This tournament environment has been put together in a short space of time and is still undergoing development. Please don't do weird things to crash it!
+
+:warning: Please don't mine bitcoins inside the agents!  Any match taking too long to complete will be automatically killed.
+
+## Computational resources
+
+Teams will be given access to temporary Ubuntu virtual machines (VMs) on Microsoft Azure, which they can use to develop and train their agents. By default each team will be given access to one VM, however, if your team would like to get access to a more powerful or a different type of VM (e.g. VM with a GPU), please get in touch with your facilitator. Please bear in mind that we have a limited amount of cloud computing resources that were provided by The Turing.
+
+### :key: Accessing your team's VM(s)
+
+In order to get access to your VM please contact your team facilitator. You will be asked to provide a public ssh key which will be then used to authenticate and authorise your connection to your team's VMs. 
+
+The facilitator will provide you with an IP address and login name, which then can be used to ssh to your team's VM(s).
+
+> If you are not familiar with the public key cryptography, we would recommend you to consult this [wiki page](https://en.wikipedia.org/wiki/Public-key_cryptography).
+
+### :cloud: Set-up on the VM(s)
+
+It is not possible for us to install all possible software and/or packages that the teams might use, therefore we kept the set up minimal and give the participants admins rights to the VMs so that they can configure them as they see fit.
+
+- The VMs will have preinstalled
+  - Docker
+
+### :computer: Local development
+
+Participants are free to develop and train agents on any platform that they see fit. However, they must be able to submit a valid docker image in order to participate in the tournament.
+
+## PlarkAI source code
+
+The source code can be found [here](https://github.com/alan-turing-institute/plark_ai_public). This is a slightly modified version of “The hunting of the PLARK” Artificial Intelligence (AI) testbed that has been developed by Montvieux. The changes are minimal - only to wrap agents into containers that can be used in the tournaments.
+
+When developing agents we recommend creating a fork of the source code and using version control. If needed, facilitators will create GitHub repositories for your team under the Alan Turing Institute account.
+
+## :pencil: How to develop and train PlarkAI
+
+Please follow Montvieux instructions on how to develop and train your agents. Instructions can be found [here](https://github.com/alan-turing-institute/plark_ai_public/blob/master/Documentation/Hunting_The_Plark.pdf)
+
+## :baseball: The Tournament
+
+Tournaments will be organised daily in the evenings on every workday from 1 March 2021 until 12 March 2021 by an automatic process. The results will be given in a form of a table for each tournament day.
+
+## :satellite: Submitting agent(s) to the tournament
+
+In order to submit agents to the tournament, each team needs to prepare them as Docker containers and push them to the tournament's container registry. We have prepared helper routines (Unix/Mac) which you might want to use.
+
+Before the event, each team will be given their private login credentials to a private container repository. Check with your facilitator if you haven't received them.
+
+You should expect to receive your team's `token_name` and `token_value`.
+
+### Building a Docker image with your agent
+
+- In the terminal window navigate to your team's `plark_ai_public` repository's main directory 
+
+- `docker build -t turingrldsg.azurecr.io/<<TEAM_ID>>:<<tag>> -f Combatant/Dockerfile .`
+
+  - Here `<<TEAM_ID>>` is your team's name and `<<tag>>` is the tag which should reflect the agent type and its version.
+
+  - If you are submitting a PELICAN agent, make sure that the docker image tag starts with `pelican_`, e.g. `pelican_latest`. Similarly, if you are submitting a PANTHER agent, make sure that the docker image tag starts with `panther_`, e.g. `panther_latest`.
+
+  - It is important to keep track of the tags being used by the team. As you will see in the next step, each team can register multiple agents for each daily tournament. However, we would prefer to keep this number to be < 5 for each category, in order to ensure that all matches finish on time.
+
+  > If you are using Unix/Mac, you might want to use the helper functions `make pelican_build` or `make panther_build` but make sure that you have the `RL_TEAM_ID` environmental variable set as your team's name. If you are not sure what it should be, please check with your facilitator. The format is "team_X" where X is your teams number, for example "team_1", "team_2", etc.
+
+- Make sure that you don't receive any errors. If you received errors, it is a good indication that your Docker container is not built correctly.
+
+### Testing the Docker image with your agent
+
+- In the terminal window navigate to your the `plark_ai_public/` directory (the main directory of your team's fork of the repository), and run the following command to test your agent's docker image: 
+
+- `docker run turingrldsg.azurecr.io/<<TEAM_ID>>:<<tag>> Combatant/tests/test_combatant.sh`
+
+  - Here `<<TEAM_ID>>` is your team's name and `<<tag>>` is the tag which should reflect the agent type and its version, e.g. "pelican_latest".
+    
+    > The format for `<<TEAM_ID>>` is "team_X" where X is your teams number, for example "team_1", "team_2", etc. If you are not sure what it should be, please check with your facilitator.
+
+- Make sure that you don't receive any errors. If you received errors, it is a good indication that your Docker container is not built correctly.  Please refer to the "Building a docker image with your agent" section above, and make sure you have followed all the instructions carefully.
+
+> If you are using Unix/Mac, you might want to use the helper functions `make pelican_test` or `make panther_test`.  Again, run these from the `plark_ai_public/` directory (the main directory of your team's fork of the repository). If using these commands, make sure that you have the `RL_TEAM_ID` environmental variable set as your team's name. If you are not sure what it should be, please check with your facilitator. The format is "team_X" where X is your teams number, for example "team_1", "team_2", etc.
+
+### Uploading docker images for the tournament
+
+- In the terminal window navigate to your team's `plark_ai_public` repository's main directory 
+
+- Make sure that you have logged in with the provided container registry credentials:
+
+  - `docker login turingrldsg.azurecr.io -u <<token_name>> -p <<token_value>>`
+
+    - Here `<<token_name>>` and `<<token_value>>` are your team's `token_name` and `token_value`.
+
+    > If you are using Unix/Mac, you might want to utilise the helper function `make login` but make sure that you have `RL_TOKEN_NAME` and `RL_TOKEN` environmental variables set as your team's `token_name` and `token_value` respectively.
+
+- Push the image to the container registry
+
+  - `docker push turingrldsg.azurecr.io/<<TEAM_ID>>:<<tag>>`
+
+    - Here `<<TEAM_ID>>` is your team's name and `<<tag>>` is the tag which should reflect the agent type and its version. The format for `<<TEAM_ID>>` is "team_X" where X is your teams number, for example "team_1", "team_2", etc. If you are not sure what it should be, please check with your facilitator.
+
+    - For example, team_test would submit their panther agent using the following command `docker push turingrldsg.azurecr.io/team_test:panther_latest`
+
+    > Again, if you are using Unix/Mac, you might want to use the helper functions `make pelican_push` or `make panther_push` but make sure that you have the `RL_TEAM_ID` environmental variable set as your team's name. If you are not sure what it should be, please check with your facilitator. The format is "team_X" where X is your teams number, for example "team_1", "team_2", etc.
 
 
-## Prerequisites
+### Registering docker images for the tournament
 
-You need Docker and docker-compose to run the tournament.  See [here](https://docs.docker.com/engine/install/) for instructions on installing them.
 
-You will also need to be able to run a recent python version (at least 3.6) locally.  Python dependencies are listed in `requirements.txt`.
 
-### Setting environment variables
 
-Copy the file `.env_template` to `.env` and fill in the various fields.  These are divided into database-related variables and Azure-storage-related variables.  See [here](database.md) for guidance on the database ones, and [here](azure-storage.md) for guidance on the Azure storage ones.
 
-## Running a game
 
-To run an example test game, with made-up teams, then assuming the fields in `.env` are set correctly, you can do
-```
-python create_match.py
-```
-this will add some teams and a match to the database, and create a file `docker-compose-match1.yml`. 
-You can then do 
-```
-docker-compose -f docker-compose-match1.yml build
-docker-compose -f docker-compose-match1.yml up
-```
-The first step will build the docker images.   The second will start them up, and run a match (consisting of 10 games, with the `10x10_balanced.json` config, and some default agents).
-When the match is completed, you can do
-```
-docker-compose -f docker-compose-match1.yml down
-```
-to cleanly shut down the docker containers.
+
 
