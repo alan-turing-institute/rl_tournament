@@ -97,7 +97,6 @@ def create_tournament():
         "Tournament file %s has been created." % (CONST_TOURNAMENT_FILE)
     )
     # add the teams and tournament to the database
-    participating_agents = pelicans + panthers
 
     for agent in pelicans:
         create_db_agent(agent, "pelican")
@@ -147,7 +146,7 @@ def get_match_config_file():
     return config_file_name
 
 
-def run_tournament(tournament_id, no_sudo=False):
+def run_tournament(tournament_id, num_games_per_match=10, no_sudo=False):
     """
     Runs the tournament by running multiple docker-compose files
 
@@ -193,6 +192,7 @@ def run_tournament(tournament_id, no_sudo=False):
                 pelican,
                 panther,
                 game_config=config_file_name,
+                num_games=num_games_per_match,
                 tournament_id=tournament_id,
             )
 
@@ -286,16 +286,22 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="run a Plark tournament")
     parser.add_argument("--no_sudo",
                         help="""
-                        For running on local machine, don't use sudo for docker commands.
+                        For running on local machine,
+                        don't use sudo for docker commands.
                         """,
                         action="store_true")
+    parser.add_argument("--num_games_per_match",
+                        help="number of games per match",
+                        type=int,
+                        default=10)
     args = parser.parse_args()
 
     no_sudo = args.no_sudo if args.no_sudo else False
+    num_games = args.num_games_per_match
 
     tid = create_tournament()
 
-    success, error = run_tournament(tid, no_sudo)
+    success, error = run_tournament(tid, num_games_per_match, no_sudo)
 
     clean_up()
 
