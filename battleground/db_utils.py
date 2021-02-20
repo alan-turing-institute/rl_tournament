@@ -36,7 +36,7 @@ def create_db_agent(agent_name, agent_type, dbsession=session):
     Assumes that the agent name follows the convention
     <<TEAM_NAME>>:<<TAG>>
     """
-    if not ":" in agent_name:
+    if ":" not in agent_name:
         raise RuntimeError(
             "agent_name must be in format <<TEAM_NAME>>:<<TAG>>"
         )
@@ -47,7 +47,7 @@ def create_db_agent(agent_name, agent_type, dbsession=session):
             return a.agent_id
     team_name, agent_tag = agent_name.split(":")
     # create_db_team will do the check for us if the team already exists
-    tid = create_db_team(team_name,dbsession=dbsession)
+    tid = create_db_team(team_name, dbsession=dbsession)
     team = dbsession.query(Team).filter_by(team_id=tid).first()
     # make a new Agent
     a = Agent()
