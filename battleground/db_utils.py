@@ -8,10 +8,10 @@ an environment variable to the 'battleground' container.
 
 import datetime
 
-from battleground.schema import session, Team, Match, Tournament
+from battleground.schema import session, Team, Agent, Match, Tournament
 
 
-def create_db_team(name, members, dbsession=session):
+def create_db_team(name, members="placeholder", dbsession=session):
     """
     Create a new team in the db after first checking if it already exists
     """
@@ -29,19 +29,50 @@ def create_db_team(name, members, dbsession=session):
     return new_team.team_id
 
 
-def create_db_tournament(teams, dbsession=session):
+def create_db_agent(agent_name, agent_type, dbsession=session):
+    """
+    Create a new agent in the db if it doesn't already exist.
+    Attach it to a team, creating the team if that doesn't already exist.
+    Assumes that the agent name follows the convention
+    <<TEAM_NAME>>:<<TAG>>
+    """
+    if not ":" in agent_name:
+        raise RuntimeError(
+            "agent_name must be in format <<TEAM_NAME>>:<<TAG>>"
+        )
+    existing_agents = dbsession.query(Agent).all()
+    for a in existing_agents:
+        if a.agent_name == agent_name:
+            print("Agent {} already exists".format(agent_name))
+            return a.agent_id
+    team_name, agent_tag = agent_name.split(":")
+    # create_db_team will do the check for us if the team already exists
+    tid = create_db_team(team_name,dbsession=dbsession)
+    team = dbsession.query(Team).filter_by(team_id=tid).first()
+    # make a new Agent
+    a = Agent()
+    a.agent_name = agent_name
+    a.agent_type = agent_type
+    a.team = team
+    dbsession.add(a)
+    dbsession.commit()
+    return a.agent_id
+
+
+def create_db_tournament(agents, dbsession=session):
     """
     Create a new tournament for each day.
     """
     print("Creating new tournament")
     tourn = Tournament()
     tourn.tournament_time = datetime.datetime.now()
-    existing_teams = dbsession.query(Team).all()
+    existing_agents = dbsession.query(Agent).all()
 
-    for t in existing_teams:
-        if t.team_name in teams:
-            tourn.teams.append(t)
-    dbsession.add(t)
+    for a in existing_agents:
+        if a.agent_name in agents:
+            tourn.agents.append(a)
+    dbsession.add(a)
+    dbsession.add(tourn)
     dbsession.commit()
     return tourn.tournament_id
 
@@ -58,9 +89,7 @@ def get_db_tournament(tournament_id, dbsession=session):
 
 
 def create_db_match(
-    pelican_team,
     pelican_agent,
-    panther_team,
     panther_agent,
     game_config="10x10_balanced.json",
     num_games=10,
@@ -70,44 +99,40 @@ def create_db_match(
 ):
     """
     Create a new match in the db after checking if it already exists.
-    If check_for_existing is True and a match between the same teams
-    and agents exists, return the match_id.  Otherwise, make a new match.
+    If check_for_existing is True and a match between the same agents
+    exists, return the match_id.  Otherwise, make a new match.
     """
     if check_for_existing:
         existing_matches = dbsession.query(Match).all()
         for m in existing_matches:
             if (
-                m.pelican_team.team_name == pelican_team
-                and m.panther_team.team_name == panther_team
-                and m.pelican_agent == pelican_agent
-                and m.panther_agent == panther_agent
+                m.pelican_agent.agent_name == pelican_agent
+                and m.panther_agent.agent_name == panther_agent
             ):
                 print("Match already exists")
                 return m.match_id
-    print("Creating new match: {} {}".format(pelican_team, panther_team))
+    print("Creating new match: {} {}".format(pelican_agent, panther_agent))
     new_match = Match()
-    # if given team names for pelican and panther, attach the Teams.
-    if pelican_team:
+    # if given team names for pelican and panther, attach the Agents.
+    if pelican_agent:
         pelican = (
-            dbsession.query(Team).filter_by(team_name=pelican_team).first()
+            dbsession.query(Agent).filter_by(agent_name=pelican_agent).first()
         )
         if not pelican:
             raise RuntimeError(
-                "Unable to find pelican team {} in db".format(pelican_team)
+                "Unable to find pelican agent {} in db".format(pelican_agent)
             )
-        new_match.pelican_team = pelican
-    if panther_team:
+        new_match.pelican_agent = pelican
+    if panther_agent:
         panther = (
-            dbsession.query(Team).filter_by(team_name=panther_team).first()
+            dbsession.query(Agent).filter_by(agent_name=panther_agent).first()
         )
         if not panther:
             raise RuntimeError(
-                "Unable to find panther team {} in db".format(panther_team)
+                "Unable to find panther agent {} in db".format(panther_agent)
             )
-        new_match.panther_team = panther
+        new_match.panther_agent = panther
     # fill in the other fields
-    new_match.pelican_agent = pelican_agent
-    new_match.panther_agent = panther_agent
     new_match.game_config = game_config
     new_match.match_time = datetime.datetime.now()
     new_match.num_games = num_games
