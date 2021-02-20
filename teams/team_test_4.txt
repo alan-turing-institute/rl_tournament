@@ -1,0 +1,2 @@
+pelican_latest
+panther_latest
