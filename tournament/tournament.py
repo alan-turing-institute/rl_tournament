@@ -231,14 +231,14 @@ def run_tournament(tournament_id):
 
         logging.info("docker-compose pull")
         docker_st = time.time()
-        subprocess.run(["docker-compose", "pull"])
+        subprocess.run(["sudo", "docker-compose", "pull"])
         logging.info(
             "docker-compose pull took %d s." % (time.time() - docker_st)
         )
 
         docker_st = time.time()
         logging.info("docker-compose up")
-        subprocess.Popen(["docker-compose", "up"])
+        subprocess.Popen(["sudo", "docker-compose", "up"])
 
         while (time.time() - docker_st) < 1800:
             if match_finished(match_id):
@@ -250,7 +250,7 @@ def run_tournament(tournament_id):
 
         logging.info("docker-compose down")
         docker_st = time.time()
-        # subprocess.run(["docker-compose", "down"])
+        subprocess.run(["sudo", "docker-compose", "down"])
         logging.info(
             "docker-compose down took %d s." % (time.time() - docker_st)
         )
