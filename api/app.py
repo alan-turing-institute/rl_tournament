@@ -5,24 +5,19 @@ API for returning info from the database
 HTTP requests to the endpoints defined here will give rise
 to calls to functions in api_utils.py
 """
-from uuid import uuid4
-
-from flask import Blueprint, Flask, session, request, jsonify
+from flask import Blueprint, Flask, jsonify
 from flask_cors import CORS
 from flask_session import Session
 
-import json
-
 from api_utils import (
     list_teams,
-    list_agents,
     list_tournaments,
-    list_matches,
     get_tournament,
     get_match,
     get_game,
-    create_response
+    create_response,
 )
+
 
 class ApiException(Exception):
     status_code = 500
@@ -71,6 +66,7 @@ def get_tournament_list():
     tournaments = list_tournaments()
     return create_response(tournaments)
 
+
 @blueprint.route("/tournaments/<tid>", methods=["GET"])
 def get_tournament_info(tid):
     """
@@ -78,6 +74,7 @@ def get_tournament_info(tid):
     """
     tournament = get_tournament(tid)
     return create_response(tournament)
+
 
 @blueprint.route("/matches/<mid>", methods=["GET"])
 def get_match_info(mid):

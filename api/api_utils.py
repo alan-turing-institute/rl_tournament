@@ -2,16 +2,8 @@
 Functions used by the RL Tournament API
 """
 from flask import jsonify
-from sqlalchemy.orm import scoped_session, sessionmaker
 
-from battleground.schema import (
-    Team,
-    Agent,
-    Tournament,
-    Match,
-    Game,
-    session
-)
+from battleground.schema import Team, Agent, Tournament, Match, Game, session
 
 
 def create_response(orig_response):
@@ -32,10 +24,7 @@ def list_teams(dbsession=session):
 
 
 def list_agents(
-        tournament="all",
-        agent_type="all",
-        team="all",
-        dbsession=session
+    tournament="all", agent_type="all", team="all", dbsession=session
 ):
     """
     Return a list of agent names.
@@ -52,9 +41,13 @@ def list_agents(
 
 def list_tournaments(dbsession=session):
     tournaments = dbsession.query(Tournament).all()
-    return [{"tournament_id": t.tournament_id,
-             "tournament_time": t.tournament_time.isoformat().split(".")[0]}
-            for t in tournaments]
+    return [
+        {
+            "tournament_id": t.tournament_id,
+            "tournament_time": t.tournament_time.isoformat().split(".")[0],
+        }
+        for t in tournaments
+    ]
 
 
 def list_matches(tournament_id="all", dbsession=session):
@@ -62,40 +55,55 @@ def list_matches(tournament_id="all", dbsession=session):
     if tournament_id != "all":
         matches_query = matches_query.filter_by(tournament_id=tournament_id)
     matches = matches_query.all()
-    return [{"match_id": m.match_id,
-             "match_time": m.match_time.isoformat().split(".")[0],
-             "pelican": m.pelican_agent.agent_name,
-             "panther": m.panther_agent.agent_name
-             } for m in matches]
+    return [
+        {
+            "match_id": m.match_id,
+            "match_time": m.match_time.isoformat().split(".")[0],
+            "pelican": m.pelican_agent.agent_name,
+            "panther": m.panther_agent.agent_name,
+        }
+        for m in matches
+    ]
 
 
 def get_tournament(tournament_id, dbsession=session):
-    tournament = dbsession.query(Tournament)\
-                          .filter_by(tournament_id=tournament_id)\
-                          .first()
+    tournament = (
+        dbsession.query(Tournament)
+        .filter_by(tournament_id=tournament_id)
+        .first()
+    )
     if not tournament:
         return {}
     return {
         "tournament_id": tournament.tournament_id,
-        "tournament_time": tournament.tournament_time.isoformat().split(".")[0],
-        "pelican_agents": [a.agent_name for a in tournament.agents \
-                           if a.agent_type=="pelican"],
-        "panther_agents": [a.agent_name for a in tournament.agents \
-                           if a.agent_type=="panther"],
-        "matches": [m.match_id for m in tournament.matches]
+        "tournament_time": tournament.tournament_time.isoformat().split(".")[
+            0
+        ],
+        "pelican_agents": [
+            a.agent_name
+            for a in tournament.agents
+            if a.agent_type == "pelican"
+        ],
+        "panther_agents": [
+            a.agent_name
+            for a in tournament.agents
+            if a.agent_type == "panther"
+        ],
+        "matches": [m.match_id for m in tournament.matches],
     }
 
 
 def get_match_id(tournament_id, panther, pelican, dbsession=session):
-    match = dbsession.query(Match)\
-                     .filter_by(tournament_id=tournament_id)\
-                     .filter(Match.pelican_agent.has(agent_name=pelican))\
-                     .filter(Match.panther_agent.has(agent_name=panther))\
-                     .first()
+    match = (
+        dbsession.query(Match)
+        .filter_by(tournament_id=tournament_id)
+        .filter(Match.pelican_agent.has(agent_name=pelican))
+        .filter(Match.panther_agent.has(agent_name=panther))
+        .first()
+    )
     if not match:
         return {}
     return {"match_id": match.match_id}
-
 
 
 def get_match(match_id, dbsession=session):
@@ -112,7 +120,7 @@ def get_match(match_id, dbsession=session):
         "panther_score": match.score("panther"),
         "pelican_score": match.score("pelican"),
         "winner": match.winning_agent.agent_name,
-        "games": [g.game_id for g in match.games]
+        "games": [g.game_id for g in match.games],
     }
 
 
@@ -128,5 +136,5 @@ def get_game(game_id, dbsession=session):
         "video": game.video_url,
         "num_turns": game.num_turns,
         "result_code": game.result_code,
-        "winner": game.winner
+        "winner": game.winner,
     }
