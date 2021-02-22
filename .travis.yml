@@ -5,3 +5,4 @@ jobs:
       python: 3.7
       before_script: pip install flake8
       script: flake8 . --statistics --count
+      script: pytest
