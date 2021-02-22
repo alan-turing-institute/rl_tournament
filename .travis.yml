@@ -1,3 +1,6 @@
+env:
+  - DB_TYPE=sqlite
+
 jobs:
   include:
     - name: Lint Python
