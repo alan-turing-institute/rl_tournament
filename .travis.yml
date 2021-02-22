@@ -3,6 +3,6 @@ jobs:
     - name: Lint Python
       language: python
       python: 3.7
-      before_script: pip install flake8
+      before_script: pip install .
       script: flake8 . --statistics --count
       script: pytest
