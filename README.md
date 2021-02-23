@@ -126,9 +126,10 @@ You should expect to receive your team's `token_name` and `token_value`.
 
 ### Registering docker images for the tournament
 
-
-
-
+* Every team will have a corresponding .txt file in the [teams](teams) directory of this repository.  
+* Teams can register their agents each day of the challenge by adding their image tags in this file. 
+   - Please check [team_test.txt](teams/team_test.txt) for an example.
+* Unregistered agents (tags) will not be included in the daily tournaments.
 
 
 
