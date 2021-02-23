@@ -60,10 +60,21 @@ Before the event, each team will be given their private login credentials to a p
 
 You should expect to receive your team's `token_name` and `token_value`.
 
+### Where to put your agent
+
+- In order to put your agent into a Docker container, it should be in a subdirectory of your team's `plark_ai_public` repository's main directory.
+- You can put your agents wherever you like within the `plark_ai_public` directory structure, but panther agents should be in a subdirectory called `panther`, and similarly for `pelican` - i.e. the paths would be:
+``/path/to/plark_ai_public/some/other/directories/panther/directory_containing_panther_agent``
+``/path/to/plark_ai_public/some/other/directories/pelican/directory_containing_pelican_agent``
+- Then, you need to set the variable `AGENTS_PATH` in the file `plark_ai_public/Combatant/combatant.py` to point to the directory _one level higher_ than the ``panther`` or ``pelican`` directories.   
+- **The start of `AGENTS_PATH` should always be ``/plark_ai_public``** (this is how the directory will be mounted on the docker container).
+- So, in the example above, you would set
+``AGENTS_PATH = /plark_ai_public/some/other/directories/``
+
+
 ### Building a Docker image with your agent
 
-- In the terminal window navigate to your team's `plark_ai_public` repository's main directory 
-
+- In the terminal window navigate to your team's `plark_ai_public` repository's main directory.
 - `docker build -t turingrldsg.azurecr.io/<<TEAM_ID>>:<<tag>> -f Combatant/Dockerfile .`
 
   - Here `<<TEAM_ID>>` is your team's name and `<<tag>>` is the tag which should reflect the agent type and its version.
