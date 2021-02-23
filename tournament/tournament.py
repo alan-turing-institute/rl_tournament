@@ -4,6 +4,7 @@
 import os
 import subprocess
 import requests
+import argparse
 import logging
 from datetime import date
 import time
@@ -11,7 +12,7 @@ import time
 from battleground.azure_config import config as az_config
 from battleground.azure_utils import list_directory
 from battleground.db_utils import (
-    create_db_team,
+    create_db_agent,
     create_db_tournament,
     create_db_match,
     match_finished,
@@ -96,11 +97,12 @@ def create_tournament():
         "Tournament file %s has been created." % (CONST_TOURNAMENT_FILE)
     )
     # add the teams and tournament to the database
-    participating_teams = [team.split(":")[0] for team in pelicans + panthers]
-    participating_teams = list(set(participating_teams))
-    for team in participating_teams:
-        create_db_team(team, "members_placeholder")
-    tournament_id = create_db_tournament(participating_teams)
+
+    for agent in pelicans:
+        create_db_agent(agent, "pelican")
+    for agent in panthers:
+        create_db_agent(agent, "panther")
+    tournament_id = create_db_tournament(pelicans+panthers)
     return tournament_id
 
 
@@ -144,7 +146,7 @@ def get_match_config_file():
     return config_file_name
 
 
-def run_tournament(tournament_id):
+def run_tournament(tournament_id, num_games_per_match=10, no_sudo=False):
     """
     Runs the tournament by running multiple docker-compose files
 
@@ -183,18 +185,14 @@ def run_tournament(tournament_id):
 
         pelican, panther = match.split()
 
-        pelican_team, pelican_image_tag = pelican.split(":")
-        panther_team, panther_image_tag = panther.split(":")
-
         # register new match
         try:
             # create the match in the database
             match_id = create_db_match(
-                pelican_team,
-                pelican_image_tag,
-                panther_team,
-                panther_image_tag,
+                pelican,
+                panther,
                 game_config=config_file_name,
+                num_games=num_games_per_match,
                 tournament_id=tournament_id,
             )
 
@@ -231,14 +229,20 @@ def run_tournament(tournament_id):
 
         logging.info("docker-compose pull")
         docker_st = time.time()
-        subprocess.run(["sudo", "docker-compose", "pull"])
+        command = ["docker-compose", "pull"]
+        if not no_sudo:
+            command = ["sudo"] + command
+        subprocess.run(command)
         logging.info(
             "docker-compose pull took %d s." % (time.time() - docker_st)
         )
 
         docker_st = time.time()
         logging.info("docker-compose up")
-        subprocess.Popen(["sudo", "docker-compose", "up"])
+        command = ["docker-compose", "up"]
+        if not no_sudo:
+            command = ["sudo"] + command
+        subprocess.Popen(command)
 
         while (time.time() - docker_st) < 1800:
             if match_finished(match_id):
@@ -250,7 +254,10 @@ def run_tournament(tournament_id):
 
         logging.info("docker-compose down")
         docker_st = time.time()
-        subprocess.run(["sudo", "docker-compose", "down"])
+        command = ["docker-compose", "down"]
+        if not no_sudo:
+            command = ["sudo"] + command
+        subprocess.run(command)
         logging.info(
             "docker-compose down took %d s." % (time.time() - docker_st)
         )
@@ -276,9 +283,25 @@ def clean_up():
 
 if __name__ == "__main__":
 
+    parser = argparse.ArgumentParser(description="run a Plark tournament")
+    parser.add_argument("--no_sudo",
+                        help="""
+                        For running on local machine,
+                        don't use sudo for docker commands.
+                        """,
+                        action="store_true")
+    parser.add_argument("--num_games_per_match",
+                        help="number of games per match",
+                        type=int,
+                        default=10)
+    args = parser.parse_args()
+
+    no_sudo = args.no_sudo if args.no_sudo else False
+    num_games = args.num_games_per_match
+
     tid = create_tournament()
 
-    success, error = run_tournament(tid)
+    success, error = run_tournament(tid, num_games_per_match, no_sudo)
 
     clean_up()
 

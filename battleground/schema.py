@@ -41,7 +41,7 @@ win_codes = {
 assoc_table = Table(
     "association",
     Base.metadata,
-    Column("team_id", Integer, ForeignKey("team.team_id")),
+    Column("agent_id", Integer, ForeignKey("agent.agent_id")),
     Column("tournament_id", Integer, ForeignKey("tournament.tournament_id")),
 )
 
@@ -53,21 +53,33 @@ class Team(Base):
     )
     team_name = Column(String(100), nullable=False)
     team_members = Column(String(1000), nullable=False)
+    agents = relationship("Agent", uselist=True, back_populates="team")
+
+
+class Agent(Base):
+    __tablename__ = "agent"
+    agent_id = Column(
+        Integer, primary_key=True, nullable=False, autoincrement=True
+    )
+    agent_name = Column(String(100), nullable=False)
+    agent_type = Column(String(100), nullable=False)
+    team = relationship("Team", back_populates="agents")
+    team_id = Column(Integer, ForeignKey("team.team_id"))
+    tournaments = relationship(
+        "Tournament",
+        uselist=True,
+        back_populates="agents",
+        secondary=assoc_table,
+    )
     join_condition = "or_("
-    join_condition += "Team.team_id==Match.pelican_team_id"
+    join_condition += "Agent.agent_id==Match.pelican_agent_id"
     join_condition += ","
-    join_condition += "Team.team_id==Match.panther_team_id"
+    join_condition += "Agent.agent_id==Match.panther_agent_id"
     join_condition += ")"
     matches = relationship(
         "Match",
         uselist=True,
         primaryjoin=join_condition,
-    )
-    tournaments = relationship(
-        "Tournament",
-        uselist=True,
-        back_populates="teams",
-        secondary=assoc_table,
     )
 
 
@@ -77,8 +89,8 @@ class Tournament(Base):
         Integer, primary_key=True, nullable=False, autoincrement=True
     )
     tournament_time = Column(DateTime, nullable=False)
-    teams = relationship(
-        "Team",
+    agents = relationship(
+        "Agent",
         uselist=True,
         back_populates="tournaments",
         secondary=assoc_table,
@@ -97,18 +109,14 @@ class Match(Base):
         "Tournament", back_populates="matches", foreign_keys=[tournament_id]
     )
 
-    pelican_team_id = Column(Integer, ForeignKey("team.team_id"))
-    pelican_team = relationship(
-        "Team", back_populates="matches", foreign_keys=[pelican_team_id]
+    pelican_agent_id = Column(Integer, ForeignKey("agent.agent_id"))
+    pelican_agent = relationship(
+        "Agent", back_populates="matches", foreign_keys=[pelican_agent_id]
     )
-    # docker image name and tag
-    pelican_agent = Column(String(100), nullable=False)
-    panther_team_id = Column(Integer, ForeignKey("team.team_id"))
-    panther_team = relationship(
-        "Team", back_populates="matches", foreign_keys=[panther_team_id]
+    panther_agent_id = Column(Integer, ForeignKey("agent.agent_id"))
+    panther_agent = relationship(
+        "Agent", back_populates="matches", foreign_keys=[panther_agent_id]
     )
-    # docker image name and tag
-    panther_agent = Column(String(100), nullable=False)
     num_games = Column(Integer, nullable=False)
     # link to game config json (on cloud storage)
     game_config = Column(String(100), nullable=False)
@@ -127,7 +135,7 @@ class Match(Base):
             )
         n_wins = 0
         for game in self.games:
-            if game.winner() == pelican_or_panther:
+            if game.winner == pelican_or_panther:
                 n_wins += 1
         return n_wins
 
@@ -149,13 +157,13 @@ class Match(Base):
             return "draw"
 
     @property
-    def winning_team(self):
+    def winning_agent(self):
         if not self.is_finished:
             return None
-        if self.winner() == "pelican":
-            return self.pelican_team
-        elif self.winner() == "panther":
-            return self.panther_team
+        if self.winner == "pelican":
+            return self.pelican_agent
+        elif self.winner == "panther":
+            return self.panther_agent
         else:
             return None
 
@@ -180,6 +188,7 @@ class Game(Base):
     match = relationship("Match", back_populates="games")
     match_id = Column(Integer, ForeignKey("match.match_id"))
 
+    @property
     def winner(self):
         # look up based on result code
         return win_codes[self.result_code]

@@ -1,6 +1,6 @@
 import datetime
 from battleground.conftest import test_session_scope
-from battleground.schema import Team, Tournament, Match, Game
+from battleground.schema import Team, Agent, Tournament, Match, Game
 
 
 def test_add_team():
@@ -19,9 +19,37 @@ def test_add_team():
         assert nt.team_members == "Someone, something"
 
 
-def test_add_teams_tournament():
+def test_add_team_agents():
     """
-    Add 2 teams to the db and a tournament for them to play
+    Add a Team, with two Agents.
+    """
+    with test_session_scope() as tsession:
+        t = Team()
+        t.team_name = "test_team"
+        t.team_members = "no-one"
+        a1 = Agent()
+        a1.agent_name = "test_team:pelican_latest"
+        a1.agent_type = "pelican"
+        a1.team = t
+        a2 = Agent()
+        a2.agent_name = "test_team:panther_latest"
+        a2.agent_type = "panther"
+        a2.team = t
+        tsession.add(t)
+        tsession.add(a1)
+        tsession.add(a2)
+        tsession.commit()
+        nt = tsession.query(Team).order_by(Team.team_id.desc()).first()
+        assert len(nt.agents) == 2
+        assert isinstance(nt.agents[0], Agent)
+        na = tsession.query(Agent).order_by(Agent.agent_id.desc()).first()
+        assert isinstance(na.team, Team)
+        assert na.team.team_name == "test_team"
+
+
+def test_add_teams_agents_tournament():
+    """
+    Add 2 teams to the db, an agent each and a tournament for them to play
     """
     with test_session_scope() as tsession:
         t1 = Team()
@@ -30,9 +58,17 @@ def test_add_teams_tournament():
         t2 = Team()
         t2.team_name = "TestTeam2"
         t2.team_members = "Someone, something"
+        a1 = Agent()
+        a1.agent_name = "TestTeam1:panther_latest"
+        a1.agent_type = "panther"
+        a1.team = t1
+        a2 = Agent()
+        a2.agent_name = "TestTeam2:pelican_latest"
+        a2.agent_type = "pelican"
+        a2.team = t2
         tourn = Tournament()
         tourn.tournament_time = datetime.datetime.now()
-        tourn.teams = [t1, t2]
+        tourn.agents = [a1, a2]
         tsession.add(tourn)
         tsession.commit()
         ntourn = (
@@ -42,15 +78,15 @@ def test_add_teams_tournament():
         )
         assert isinstance(ntourn, Tournament)
         assert isinstance(ntourn.tournament_time, datetime.datetime)
-        assert isinstance(ntourn.teams, list)
-        assert ntourn.teams[0].team_name == "TestTeam1"
-        assert len(t1.tournaments) == 1
-        assert len(t2.tournaments) == 1
+        assert isinstance(ntourn.agents, list)
+        assert ntourn.agents[0].team.team_name == "TestTeam1"
+        assert len(a1.tournaments) == 1
+        assert len(a2.tournaments) == 1
 
 
-def test_add_teams_tournament_match():
+def test_add_teams_agents_tournament_match():
     """
-    Add 2 teams to the db and a tournament for them to play,
+    Add 2 teams to the db, an agent each,  and a tournament for them to play,
     containing one match
     """
     with test_session_scope() as tsession:
@@ -60,30 +96,46 @@ def test_add_teams_tournament_match():
         t2 = Team()
         t2.team_name = "TestTeam2"
         t2.team_members = "Someone, something"
+        a1 = Agent()
+        a1.agent_name = "TestTeam1:panther_latest"
+        a1.agent_type = "panther"
+        a1.team = t1
+        a2 = Agent()
+        a2.agent_name = "TestTeam2:pelican_latest"
+        a2.agent_type = "pelican"
+        a2.team = t2
         tourn = Tournament()
         tourn.tournament_time = datetime.datetime.now()
-        tourn.teams = [t1, t2]
+        tourn.agents = [a1, a2]
         m = Match()
         m.match_time = datetime.datetime.now()
         m.game_config = "dummy"
         m.num_games = 10
         m.logfile_url = "dummy"
-        m.pelican_team = t1
-        m.panther_team = t2
-        m.pelican_agent = "blah"
-        m.panther_agent = "blah"
+        m.pelican_agent = a1
+        m.panther_agent = a2
         tourn.matches.append(m)
         tsession.add(t1)
         tsession.add(t2)
+        tsession.add(a1)
+        tsession.add(a2)
         tsession.add(tourn)
         tsession.add(m)
         tsession.commit()
         # now query the match table
         nm = tsession.query(Match).order_by(Match.match_id.desc()).first()
         assert isinstance(nm, Match)
-        assert isinstance(nm.pelican_team, Team)
-        assert isinstance(nm.panther_team, Team)
+        assert isinstance(nm.pelican_agent, Agent)
+        assert isinstance(nm.panther_agent, Agent)
+        assert isinstance(nm.pelican_agent.team, Team)
+        assert isinstance(nm.panther_agent.team, Team)
         assert isinstance(nm.tournament, Tournament)
+        # query the other way round
+        nt = tsession.query(Team).order_by(Team.team_id.desc()).first()
+        assert isinstance(nt, Team)
+        assert len(nt.agents) == 1
+        assert len(nt.agents[0].tournaments) == 1
+        assert len(nt.agents[0].tournaments[0].matches) == 1
 
 
 def test_add_match_games():
@@ -96,8 +148,6 @@ def test_add_match_games():
         m.game_config = "dummy"
         m.num_games = 10
         m.logfile_url = "dummy"
-        m.pelican_agent = "dummy"
-        m.panther_agent = "dummy"
         games = []
         for i in range(10):
             games.append(Game())
