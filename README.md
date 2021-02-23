@@ -50,7 +50,7 @@ Please follow Montvieux instructions on how to develop and train your agents. In
 
 ## :baseball: The Tournament
 
-Tournaments will be organised daily in the evenings on every workday from 1 March 2021 until 12 March 2021 by an automatic process. The results will be given in a form of a table for each tournament day.
+Tournaments will be organised daily in the evenings on every workday from the 5th to the 12th March 2021, by an automatic process. The results will be given in a form of a table for each tournament day.
 
 ## :satellite: Submitting agent(s) to the tournament
 
