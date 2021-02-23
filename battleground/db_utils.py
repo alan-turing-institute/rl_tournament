@@ -101,6 +101,23 @@ def create_db_match(
     Create a new match in the db after checking if it already exists.
     If check_for_existing is True and a match between the same agents
     exists, return the match_id.  Otherwise, make a new match.
+
+    Parameters
+    ==========
+    pelican_agent: str, name of the pelican agent
+    panther_agent: str, name of the panther agent
+    game_config: str, name of the json file containing game config
+    num_games: int, number of Games in the Match
+    tournament_id: int, ID of the tournament in the database
+    check_for_existing: if True, don't create a new match if there is
+                        an existing match between the same agents.
+    dbsession: sqlalchemy.orm.session.Session, the database session.
+               By default use the global "session", but may want to
+               use a different session for testing.
+
+    Returns
+    =======
+    match_id: int, ID of the existing or newly created match in the db.
     """
     if check_for_existing:
         existing_matches = dbsession.query(Match).all()
@@ -112,8 +129,10 @@ def create_db_match(
                 print("Match already exists")
                 return m.match_id
     print("Creating new match: {} {}".format(pelican_agent, panther_agent))
-    new_match = Match()
+
     # if given team names for pelican and panther, attach the Agents.
+    pelican = None
+    panther = None
     if pelican_agent:
         pelican = (
             dbsession.query(Agent).filter_by(agent_name=pelican_agent).first()
@@ -122,8 +141,9 @@ def create_db_match(
             raise RuntimeError(
                 "Unable to find pelican agent {} in db".format(pelican_agent)
             )
-        new_match.pelican_agent = pelican
+
     if panther_agent:
+        print("panther agent {}".format(panther_agent))
         panther = (
             dbsession.query(Agent).filter_by(agent_name=panther_agent).first()
         )
@@ -131,6 +151,12 @@ def create_db_match(
             raise RuntimeError(
                 "Unable to find panther agent {} in db".format(panther_agent)
             )
+
+    # create the Match object
+    new_match = Match()
+    if pelican:
+        new_match.pelican_agent = pelican
+    if panther:
         new_match.panther_agent = panther
     # fill in the other fields
     new_match.game_config = game_config

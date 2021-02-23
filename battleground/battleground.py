@@ -351,7 +351,7 @@ class Battle(Newgame):
             ):
                 break
 
-    def play(self, match_id=0, video_file_path=None):
+    def play(self, match_id=0, video_file_path=None, dbsession=session):
         """
         Plays a battle.
 
@@ -364,7 +364,7 @@ class Battle(Newgame):
 
         logger.info("Battle begins!")
         parent_match = (
-            session.query(Match).filter_by(match_id=match_id).first()
+            dbsession.query(Match).filter_by(match_id=match_id).first()
         )
         if not parent_match:
             raise RuntimeError(
@@ -427,7 +427,7 @@ class Battle(Newgame):
         )
         g.video_url = video_url
 
-        session.add(g)
-        session.commit()
+        dbsession.add(g)
+        dbsession.commit()
 
         return

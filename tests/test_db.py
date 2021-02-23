@@ -79,7 +79,13 @@ def test_add_teams_agents_tournament():
         assert isinstance(ntourn, Tournament)
         assert isinstance(ntourn.tournament_time, datetime.datetime)
         assert isinstance(ntourn.agents, list)
-        assert ntourn.agents[0].team.team_name == "TestTeam1"
+        assert len(ntourn.agents) == 2
+        agent_names = [a.agent_name for a in ntourn.agents]
+        assert "TestTeam1:panther_latest" in agent_names
+        assert "TestTeam2:pelican_latest" in agent_names
+        team_names = [a.team.team_name for a in ntourn.agents]
+        assert "TestTeam1" in team_names
+        assert "TestTeam2" in team_names
         assert len(a1.tournaments) == 1
         assert len(a2.tournaments) == 1
 

@@ -102,7 +102,7 @@ def create_tournament():
         create_db_agent(agent, "pelican")
     for agent in panthers:
         create_db_agent(agent, "panther")
-    tournament_id = create_db_tournament(pelicans+panthers)
+    tournament_id = create_db_tournament(pelicans + panthers)
     return tournament_id
 
 
@@ -284,20 +284,24 @@ def clean_up():
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="run a Plark tournament")
-    parser.add_argument("--no_sudo",
-                        help="""
+    parser.add_argument(
+        "--no_sudo",
+        help="""
                         For running on local machine,
                         don't use sudo for docker commands.
                         """,
-                        action="store_true")
-    parser.add_argument("--num_games_per_match",
-                        help="number of games per match",
-                        type=int,
-                        default=10)
+        action="store_true",
+    )
+    parser.add_argument(
+        "--num_games_per_match",
+        help="number of games per match",
+        type=int,
+        default=10,
+    )
     args = parser.parse_args()
 
     no_sudo = args.no_sudo if args.no_sudo else False
-    num_games = args.num_games_per_match
+    num_games_per_match = args.num_games_per_match
 
     tid = create_tournament()
 
