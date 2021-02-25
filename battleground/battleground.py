@@ -209,12 +209,17 @@ class Battle(Newgame):
         self.create_game_objects()
 
         # Initialize the RabbitMQ connection
-        self.setup_message_queues()
+ #       self.setup_message_queues()
 
         self.gamePlayerTurn = "ALL"
 
         self.default_game_variables()
 
+        # create "Observation" objects for the two agents
+        self.observation = {
+            "PANTHER" : Observation(self, driving_agent="pelican"),
+            "PELICAN" : Observation(self, driving_agent="panther"),
+        }
         # Create UI objects and render game.
         #   This must be the last thing in the __init__
         param_name = "render_height"
@@ -297,7 +302,8 @@ class Battle(Newgame):
         self.corr_id = str(uuid.uuid4())
         # get the game state from the point-of-view of this agent
         game_state = self._state(agent_type)
-        serialized_game_state = serialize_state(game_state)
+#        serialized_game_state = serialize_state(game_state)
+        obs = self.observation[agent_type].get_observation(game_state)
         self.response = None
         self.channel.basic_publish(
             exchange="",
@@ -306,7 +312,8 @@ class Battle(Newgame):
                 reply_to=self.callback_queue,
                 correlation_id=self.corr_id,
             ),
-            body=json.dumps(serialized_game_state),
+            body=json.dumps(obs),
+#            body=json.dumps(serialized_game_state),
         )
         while self.response is None:
             self.connection.process_data_events()
