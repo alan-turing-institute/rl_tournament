@@ -21,8 +21,7 @@ import PIL.Image
 import logging
 from logging.handlers import RotatingFileHandler
 
-from plark_game.classes.environment import Environment
-from plark_game.classes.newgame import Newgame
+from plark_game.classes.newgamebase import NewgameBase
 from plark_game.classes.move import Move
 
 from battleground.serialization import serialize_state
@@ -53,15 +52,19 @@ def make_az_url(storage_account_name, container_name, blob_name):
     )
 
 
-class Battleground(Environment):
+class Battleground():
     """
-    Derived class of 'Environment', fulfils the same role - manages the
-    creation and configuration of games.   Only difference is that instead
-    of creating 'Newgame' instances, we create 'Battle' instances.
+    Equivalent of 'Environment' class in plark_ai_public/Components/plark-game.
+    Fulfils the same role - manages the creation and configuration of games.
+    Only difference is that instead of creating 'Newgame' instances,
+    we create 'Battle' instances.
+    Also have code to create interact with the database, and to ensure
+    that the RabbitMQ queue is up, and both agents have sent a "ready" message.
     """
 
     def __init__(self, match_id, dbsession=session, **kwargs):
-        super().__init__(**kwargs)
+        self.activeGames = []
+        self.numberOfActiveGames = 0
         match_id = int(match_id)
         # new logfile name for this match
         self.f_handler = RotatingFileHandler(
@@ -183,9 +186,9 @@ class Battleground(Environment):
         session.commit()
 
 
-class Battle(Newgame):
+class Battle(NewgameBase):
     """
-    Battle class.  Derives from NewGame, but overrides the constructor,
+    Battle class.  Derives from NewGameBase, but overrides the constructor,
     pantherPhase and pelicanPhase so that rather than owning the agents,
     the battle instance instead sends messages via RabbitMQ.
 
@@ -200,13 +203,9 @@ class Battle(Newgame):
             kwargs -
         """
 
+        super().__init__(game_config, **kwargs)
+
         self.gamePlayerTurn = None
-
-        # load the game configurations
-        self.load_configurations(game_config, **kwargs)
-
-        # Create required game objects
-        self.create_game_objects()
 
         # Initialize the RabbitMQ connection
         #       self.setup_message_queues()
@@ -220,6 +219,7 @@ class Battle(Newgame):
             "PANTHER": Observation(self, driving_agent="pelican"),
             "PELICAN": Observation(self, driving_agent="panther"),
         }
+
         # Create UI objects and render game.
         #   This must be the last thing in the __init__
         param_name = "render_height"
