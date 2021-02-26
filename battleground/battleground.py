@@ -23,6 +23,7 @@ from logging.handlers import RotatingFileHandler
 
 from plark_game.classes.newgamebase import NewgameBase
 from plark_game.classes.move import Move
+from plark_game.classes.observation import Observation
 
 from battleground.serialization import serialize_state
 from battleground.schema import Match, Game, session
@@ -109,16 +110,34 @@ class Battleground():
         logger.info("Game Created")
 
     def listen_for_ready(self):
+        """
+        When they have started up, the agents will send a "ready"
+        message to the queue 'rpc_queue_ready'.  Here we setup the
+        queue to listen for those messages, and once connected to it,
+        start listening.
+        """
+
         ready_queue = "rpc_queue_ready"
 
         if "RABBITMQ_HOST" in os.environ.keys():
             hostname = os.environ["RABBITMQ_HOST"]
         else:
             hostname = "localhost"
-        self.connection = pika.BlockingConnection(
-            pika.ConnectionParameters(host=hostname)
-        )
 
+        # wait for the RabbitMQ queue to become ready
+        connected = False
+        while not connected:
+            try:
+                self.connection = pika.BlockingConnection(
+                    pika.ConnectionParameters(host=hostname)
+                )
+                connected = True
+            except (
+                pika.exceptions.AMQPConnectionError,
+                AMQPConnectorSocketConnectError,
+            ):
+                logger.info("Waiting for connection...")
+                time.sleep(2)
         self.channel = self.connection.channel()
 
         self.channel.queue_declare(queue=ready_queue)
@@ -131,6 +150,7 @@ class Battleground():
         )
         logger.info("Listening for agents becoming ready.")
         self.channel.start_consuming()
+
 
     def set_agent_ready(self, ch, method, props, body):
         """
@@ -190,7 +210,7 @@ class Battle(NewgameBase):
     """
     Battle class.  Derives from NewGameBase, but overrides the constructor,
     pantherPhase and pelicanPhase so that rather than owning the agents,
-    the battle instance instead sends messages via RabbitMQ.
+    the battle instance instead sends messages to them via RabbitMQ.
 
     """
 
@@ -208,7 +228,7 @@ class Battle(NewgameBase):
         self.gamePlayerTurn = None
 
         # Initialize the RabbitMQ connection
-        #       self.setup_message_queues()
+        self.setup_message_queues()
 
         self.gamePlayerTurn = "ALL"
 
@@ -216,8 +236,8 @@ class Battle(NewgameBase):
 
         # create "Observation" objects for the two agents
         self.observation = {
-            "PANTHER": Observation(self, driving_agent="pelican"),
-            "PELICAN": Observation(self, driving_agent="panther"),
+            "PANTHER": Observation(self, driving_agent="panther"),
+            "PELICAN": Observation(self, driving_agent="pelican"),
         }
 
         # Create UI objects and render game.
@@ -315,10 +335,10 @@ class Battle(NewgameBase):
         ].get_normalised_remaining_domain_parameters()
         body = {
             "state": serialized_game_state,
-            "obs": obs,
-            "obs_normalised": obs_normalised,
-            "domain_parameters": domain_parameters,
-            "domain_parameters_normalised": domain_parameters_normalised,
+            "obs": list(obs),
+            "obs_normalised": list(obs_normalised),
+            "domain_parameters": list(domain_parameters),
+            "domain_parameters_normalised": list(domain_parameters_normalised),
         }
         self.response = None
         self.channel.basic_publish(
