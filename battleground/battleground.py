@@ -309,10 +309,10 @@ class Battle(Newgame):
         ].get_normalised_observation(game_state)
         domain_parameters = self.observation[
             agent_type
-        ].get_domain_parameters()
+        ].get_remaining_domain_parameters()
         domain_parameters_normalised = self.observation[
             agent_type
-        ].get_normalised_domain_parameters()
+        ].get_normalised_remaining_domain_parameters()
         body = {
             "state": serialized_game_state,
             "obs": obs,
