@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+  <meta charset="utf-8" />
+  <title>Match {{ mid }}</title>
+</head>
+<body>
+  <div>
+    <h2> Games in match {{ mid }}</h2>
+    <table>
+      <tr>
+	<td> Game ID </td>
+	<td> time </td>
+	<td> pelican agent </td>
+	<td> panther agent </td>
+	<td> number of turns </td>
+	<td> result code </td>
+	<td> winner </td>
+	<td> video </td>
+      </tr>
+      {% for row in games %}
+      <tr>
+	<td>{{ row.game_id }}</td>
+	<td>{{ row.game_time }}
+	<td>{{ row.pelican }}
+	<td>{{ row.panther }}
+	<td>{{ row.num_turns }}</td>
+	<td>{{ row.result_code }}</td>
+	<td>{{ row.winner }}</td>
+	<td><a href={{ row.video }}>video</a> </td>
+      </tr>
+      {% endfor %}
+</table>
+</div>
+</body>
+</html>

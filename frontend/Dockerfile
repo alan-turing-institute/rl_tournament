@@ -1,0 +1,28 @@
+FROM ubuntu:18.04
+
+### get pip git etc
+
+RUN apt-get update; apt-get install -y python3
+RUN apt-get update; apt-get install -y python3-pip
+RUN apt-get update; apt-get install -y locales
+
+RUN apt-get update; apt-get install -y git
+RUN apt-get update; apt-get install -y libgl1-mesa-glx
+RUN apt-get update; apt-get install -y nano
+
+# Set the locale
+RUN sed -i -e 's/# en_GB.UTF-8 UTF-8/en_GB.UTF-8 UTF-8/' /etc/locale.gen && \
+    locale-gen
+ENV LANG en_GB.UTF-8
+ENV LANGUAGE en_GB:en
+ENV LC_ALL en_GB.UTF-8
+
+ADD . /rl_tournament_frontend
+WORKDIR /rl_tournament_frontend
+
+
+RUN python3 -m pip install --upgrade pip
+RUN python3 -m pip install -r requirements.txt
+
+
+ENTRYPOINT ["./run_app.sh"]
