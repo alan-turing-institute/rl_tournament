@@ -30,13 +30,16 @@ def list_agents(
     Return a list of agent names.
     """
     agents_query = dbsession.query(Agent)
-    if tournament != "all":
-        agents_query = agents_query.filter_by(tournament_id=tournament)
+
     if agent_type != "all":
         agents_query = agents_query.filter_by(agent_type=agent_type)
     if team != "all":
         agents_query = agents_query.filter(Agent.team.has(team_name=team))
-    return [agent.agent_name for agent in agents_query.all()]
+    agents = agents_query.all()
+    if tournament != "all":
+        agents = [a for a in agents if int(tournament) in \
+                  [t.tournament_id for t in a.tournaments]]
+    return [agent.agent_name for agent in agents]
 
 
 def list_tournaments(dbsession=session):

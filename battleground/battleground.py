@@ -21,9 +21,9 @@ import PIL.Image
 import logging
 from logging.handlers import RotatingFileHandler
 
-from plark_game.classes.environment import Environment
-from plark_game.classes.newgame import Newgame
+from plark_game.classes.newgamebase import NewgameBase
 from plark_game.classes.move import Move
+from plark_game.classes.observation import Observation
 
 from battleground.serialization import serialize_state
 from battleground.schema import Match, Game, session
@@ -53,15 +53,19 @@ def make_az_url(storage_account_name, container_name, blob_name):
     )
 
 
-class Battleground(Environment):
+class Battleground():
     """
-    Derived class of 'Environment', fulfils the same role - manages the
-    creation and configuration of games.   Only difference is that instead
-    of creating 'Newgame' instances, we create 'Battle' instances.
+    Equivalent of 'Environment' class in plark_ai_public/Components/plark-game.
+    Fulfils the same role - manages the creation and configuration of games.
+    Only difference is that instead of creating 'Newgame' instances,
+    we create 'Battle' instances.
+    Also have code to create interact with the database, and to ensure
+    that the RabbitMQ queue is up, and both agents have sent a "ready" message.
     """
 
     def __init__(self, match_id, dbsession=session, **kwargs):
-        super().__init__(**kwargs)
+        self.activeGames = []
+        self.numberOfActiveGames = 0
         match_id = int(match_id)
         # new logfile name for this match
         self.f_handler = RotatingFileHandler(
@@ -106,16 +110,34 @@ class Battleground(Environment):
         logger.info("Game Created")
 
     def listen_for_ready(self):
+        """
+        When they have started up, the agents will send a "ready"
+        message to the queue 'rpc_queue_ready'.  Here we setup the
+        queue to listen for those messages, and once connected to it,
+        start listening.
+        """
+
         ready_queue = "rpc_queue_ready"
 
         if "RABBITMQ_HOST" in os.environ.keys():
             hostname = os.environ["RABBITMQ_HOST"]
         else:
             hostname = "localhost"
-        self.connection = pika.BlockingConnection(
-            pika.ConnectionParameters(host=hostname)
-        )
 
+        # wait for the RabbitMQ queue to become ready
+        connected = False
+        while not connected:
+            try:
+                self.connection = pika.BlockingConnection(
+                    pika.ConnectionParameters(host=hostname)
+                )
+                connected = True
+            except (
+                pika.exceptions.AMQPConnectionError,
+                AMQPConnectorSocketConnectError,
+            ):
+                logger.info("Waiting for connection...")
+                time.sleep(2)
         self.channel = self.connection.channel()
 
         self.channel.queue_declare(queue=ready_queue)
@@ -128,6 +150,7 @@ class Battleground(Environment):
         )
         logger.info("Listening for agents becoming ready.")
         self.channel.start_consuming()
+
 
     def set_agent_ready(self, ch, method, props, body):
         """
@@ -183,11 +206,11 @@ class Battleground(Environment):
         session.commit()
 
 
-class Battle(Newgame):
+class Battle(NewgameBase):
     """
-    Battle class.  Derives from NewGame, but overrides the constructor,
+    Battle class.  Derives from NewGameBase, but overrides the constructor,
     pantherPhase and pelicanPhase so that rather than owning the agents,
-    the battle instance instead sends messages via RabbitMQ.
+    the battle instance instead sends messages to them via RabbitMQ.
 
     """
 
@@ -200,13 +223,9 @@ class Battle(Newgame):
             kwargs -
         """
 
+        super().__init__(game_config, **kwargs)
+
         self.gamePlayerTurn = None
-
-        # load the game configurations
-        self.load_configurations(game_config, **kwargs)
-
-        # Create required game objects
-        self.create_game_objects()
 
         # Initialize the RabbitMQ connection
         self.setup_message_queues()
@@ -214,6 +233,12 @@ class Battle(Newgame):
         self.gamePlayerTurn = "ALL"
 
         self.default_game_variables()
+
+        # create "Observation" objects for the two agents
+        self.observation = {
+            "PANTHER": Observation(self, driving_agent="panther"),
+            "PELICAN": Observation(self, driving_agent="pelican"),
+        }
 
         # Create UI objects and render game.
         #   This must be the last thing in the __init__
@@ -298,6 +323,23 @@ class Battle(Newgame):
         # get the game state from the point-of-view of this agent
         game_state = self._state(agent_type)
         serialized_game_state = serialize_state(game_state)
+        obs = self.observation[agent_type].get_original_observation(game_state)
+        obs_normalised = self.observation[
+            agent_type
+        ].get_normalised_observation(game_state)
+        domain_parameters = self.observation[
+            agent_type
+        ].get_remaining_domain_parameters()
+        domain_parameters_normalised = self.observation[
+            agent_type
+        ].get_normalised_remaining_domain_parameters()
+        body = {
+            "state": serialized_game_state,
+            "obs": list(obs),
+            "obs_normalised": list(obs_normalised),
+            "domain_parameters": list(domain_parameters),
+            "domain_parameters_normalised": list(domain_parameters_normalised),
+        }
         self.response = None
         self.channel.basic_publish(
             exchange="",
@@ -306,7 +348,7 @@ class Battle(Newgame):
                 reply_to=self.callback_queue,
                 correlation_id=self.corr_id,
             ),
-            body=json.dumps(serialized_game_state),
+            body=json.dumps(body),
         )
         while self.response is None:
             self.connection.process_data_events()

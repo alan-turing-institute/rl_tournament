@@ -23,6 +23,7 @@ WORKDIR /rl_tournament
 RUN python3 -m pip install --upgrade pip
 RUN python3 -m pip install -r requirements.txt
 RUN git clone https://github.com/alan-turing-institute/plark_ai_public
+RUN cd plark_ai_public; git checkout feature/newgame-base
 RUN cd plark_ai_public/Components/plark-game; pip3 install .
 
 ### TOTAL HACK - MUST BE A BETTER WAY TO INSTALL resources/font.tff

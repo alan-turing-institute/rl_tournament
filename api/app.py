@@ -10,6 +10,7 @@ from flask_cors import CORS
 from flask_session import Session
 
 from api_utils import (
+    list_agents,
     list_teams,
     list_tournaments,
     get_tournament,
@@ -74,6 +75,33 @@ def get_tournament_info(tid):
     """
     tournament = get_tournament(tid)
     return create_response(tournament)
+
+
+@blueprint.route("/agents/<team_name>", methods=["GET"])
+def get_agent_list(team_name):
+    """
+    Return a list of all agents for a given team
+    """
+    agents = list_agents(team=team_name)
+    return create_response(agents)
+
+
+@blueprint.route("/pelicans/<tid>", methods=["GET"])
+def get_pelican_list(tid):
+    """
+    Return a list of all agents for a given team
+    """
+    agents = list_agents(tournament=tid, agent_type="pelican")
+    return create_response(agents)
+
+
+@blueprint.route("/panthers/<tid>", methods=["GET"])
+def get_panther_list(tid):
+    """
+    Return a list of all agents for a given team
+    """
+    agents = list_agents(tournament=tid, agent_type="panther")
+    return create_response(agents)
 
 
 @blueprint.route("/matches/<mid>", methods=["GET"])
