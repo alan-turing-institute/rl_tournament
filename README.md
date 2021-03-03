@@ -91,15 +91,13 @@ You should expect to receive your team's `token_name` and `token_value`.
 
 - In the terminal window navigate to your the `plark_ai_public/` directory (the main directory of your team's fork of the repository), and run the following command to test your agent's docker image: 
 
-- `docker run turingrldsg.azurecr.io/<<TEAM_ID>>:<<tag>> Combatant/tests/test_panther.sh <<PATH TO THE AGENT>>`
+- `docker run turingrldsg.azurecr.io/<<TEAM_ID>>:<<tag>> Combatant/tests/test_panther.sh`
 
-- `docker run turingrldsg.azurecr.io/<<TEAM_ID>>:<<tag>> Combatant/tests/test_pelican.sh <<PATH TO THE AGENT>>`
+- `docker run turingrldsg.azurecr.io/<<TEAM_ID>>:<<tag>> Combatant/tests/test_pelican.sh`
 
   - Here `<<TEAM_ID>>` is your team's name and `<<tag>>` is the tag which should reflect the agent type and its version, e.g. "pelican_latest".
     
     > The format for `<<TEAM_ID>>` is "team_X" where X is your teams number, for example "team_1", "team_2", etc. If you are not sure what it should be, please check with your facilitator.
-
-  - `<<PATH TO THE AGENT>>` is the relative path to the agent's files in the container. For example for a NN-based panther agent the path would be: `data/agents/models/panther/move_north_nn`.
 
 - Make sure that you don't receive any errors. If you received errors, it is a good indication that your Docker container is not built correctly.  Please refer to the "Building a docker image with your agent" section above, and make sure you have followed all the instructions carefully.
 
