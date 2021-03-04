@@ -17,13 +17,12 @@ ENV LANG en_GB.UTF-8
 ENV LANGUAGE en_GB:en
 ENV LC_ALL en_GB.UTF-8
 
-ADD . /rl_tournament
-WORKDIR /rl_tournament
+ADD . /rl_tournament_frontend
+WORKDIR /rl_tournament_frontend
+
 
 RUN python3 -m pip install --upgrade pip
 RUN python3 -m pip install -r requirements.txt
-RUN git clone https://github.com/alan-turing-institute/plark_ai_public
-RUN cd plark_ai_public/Components/plark-game; pip3 install .
 
-### TOTAL HACK - MUST BE A BETTER WAY TO INSTALL resources/font.tff
-RUN cp -r plark_ai_public/Components/plark-game/plark_game/classes/resources /usr/local/lib/python3.6/dist-packages/plark_game/classes/
+
+ENTRYPOINT ["./run_app.sh"]

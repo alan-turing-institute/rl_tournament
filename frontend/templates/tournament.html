@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+  <meta charset="utf-8" />
+  <title>Tournament {{ tid }}</title>
+</head>
+<body>
+  <div>
+    <h2>Matches in tournament {{ tid }}</h2>
+    <table>
+      <tr>
+	<td> Match id </td>
+	<td> config </td>
+	<td> Pelican agent </td>
+	<td> Panther agent </td>
+	<td> Pelican score </td>
+	<td> Panther score </td>
+	<td> logfile </td>
+	<td> details </td>
+      </tr>
+      {% for row in matches %}
+      <tr>
+	<td>{{ row.match_id }}</td>
+	<td>{{ row.config }}
+	<td>{{ row.pelican }}</td>
+	<td>{{ row.panther }}</td>
+	<td>{{ row.pelican_score }}</td>
+	<td>{{ row.panther_score }}</td>
+	<td><a href={{ row.logfile }}>logfile</a> </td>
+	<td><a href=../match/{{ row.match_id }}>game details</a></td>
+      </tr>
+      {% endfor %}
+</table>
+</div>
+</body>
+</html>
