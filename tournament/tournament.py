@@ -167,7 +167,7 @@ def get_match_config_file():
                 config_file_name = config_file
                 break
     else:
-        config_file_name = random.choice(configs_list)
+        config_file_name = random.choice(sel_configs)
 
     logging.info("For %s will use %s" % (current_day, config_file_name))
 
