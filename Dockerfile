@@ -17,11 +17,13 @@ ENV LANG en_GB.UTF-8
 ENV LANGUAGE en_GB:en
 ENV LC_ALL en_GB.UTF-8
 
+ADD requirements.txt /tmp/requirements.txt
+RUN python3 -m pip install --upgrade pip
+RUN python3 -m pip install -r /tmp/requirements.txt
+
 ADD . /rl_tournament
 WORKDIR /rl_tournament
 
-RUN python3 -m pip install --upgrade pip
-RUN python3 -m pip install -r requirements.txt
 RUN git clone https://github.com/alan-turing-institute/plark_ai_public
 RUN cd plark_ai_public/Components/plark-game; pip3 install .
 
