@@ -50,7 +50,7 @@ Please follow Montvieux instructions on how to develop and train your agents. In
 
 ## :baseball: The Tournament
 
-Tournaments will be organised daily in the evenings on every workday from 1 March 2021 until 12 March 2021 by an automatic process. The results will be given in a form of a table for each tournament day.
+Tournaments will be organised daily in the evenings on every workday from the 5th to the 12th March 2021, by an automatic process. The results will be given in a form of a table for each tournament day.
 
 ## :satellite: Submitting agent(s) to the tournament
 
@@ -91,7 +91,9 @@ You should expect to receive your team's `token_name` and `token_value`.
 
 - In the terminal window navigate to your the `plark_ai_public/` directory (the main directory of your team's fork of the repository), and run the following command to test your agent's docker image: 
 
-- `docker run turingrldsg.azurecr.io/<<TEAM_ID>>:<<tag>> Combatant/tests/test_combatant.sh`
+- `docker run turingrldsg.azurecr.io/<<TEAM_ID>>:<<tag>> Combatant/tests/test_panther.sh`
+
+- `docker run turingrldsg.azurecr.io/<<TEAM_ID>>:<<tag>> Combatant/tests/test_pelican.sh`
 
   - Here `<<TEAM_ID>>` is your team's name and `<<tag>>` is the tag which should reflect the agent type and its version, e.g. "pelican_latest".
     
