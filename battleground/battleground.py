@@ -129,7 +129,11 @@ class Battleground():
         while not connected:
             try:
                 self.connection = pika.BlockingConnection(
-                    pika.ConnectionParameters(host=hostname)
+                    pika.ConnectionParameters(
+                        host=hostname,
+                        heartbeat=600,
+                        blocked_connection_timeout=300
+                    )
                 )
                 connected = True
             except (
@@ -271,7 +275,11 @@ class Battle(NewgameBase):
         while not connected:
             try:
                 self.connection = pika.BlockingConnection(
-                    pika.ConnectionParameters(host=hostname)
+                    pika.ConnectionParameters(
+                        host=hostname,
+                        heartbeat=600,
+                        blocked_connection_timeout=300
+                    )
                 )
                 connected = True
             except (
