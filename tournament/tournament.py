@@ -196,16 +196,17 @@ def run_tournament(tournament_id, num_games_per_match=10, no_sudo=False):
     with open(CONST_TOURNAMENT_FILE, "r") as file:
         matches = file.read().splitlines()
 
-    # get a match config file for the day
-    config_file_name = get_match_config_file()
-
-    if config_file_name is None:
-        return False, "Could not find a match config file."
-
     no_matches = len(matches)
     logging.info("The tournament will have %d match(es)" % (no_matches))
 
     for match_idx, match in enumerate(matches):
+
+        # get a match config file for the day
+        config_file_name = get_match_config_file()
+
+        if config_file_name is None:
+            print("Could not find a match config file.")
+            break
 
         logging.info("Running match %d/%d" % (match_idx + 1, no_matches))
 
