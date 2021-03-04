@@ -8,6 +8,7 @@ import argparse
 import logging
 from datetime import date
 import time
+import random
 
 from battleground.azure_config import config as az_config
 from battleground.azure_utils import list_directory
@@ -124,22 +125,49 @@ def get_match_config_file():
     path = ""
     container_name = az_config["config_container_name"]
 
-    config_list = list_directory(path, container_name)
+    configs_list = list_directory(path, container_name)
 
-    if len(config_list) == 0:
+    if len(configs_list) == 0:
+        logging.info("Could not find any configurations.")
         return config_file_name
 
-    for config_file in config_list:
+    logging.info("Total number of configs: %d" % (len(configs_list)))
+
+    sel_configs = []
+
+    for config_file in configs_list:
         if config_file.startswith(current_day):
-            config_file_name = config_file
-            break
+            sel_configs.append(config_file)
 
-    if config_file_name is None:
+    logging.info(
+        "Total number of configs for the day: %d" % (len(sel_configs))
+    )
 
-        for config_file in config_list:
+    if len(sel_configs) == 0:
+        logging.info(
+            "Could not find any configuration for today. Using default ones."
+        )
+
+        for config_file in configs_list:
+            if config_file.startswith("default"):
+                sel_configs.append(config_file)
+
+        logging.info(
+            "Total number of default configs: %d" % (len(sel_configs))
+        )
+
+    if len(sel_configs) == 0:
+        logging.info(
+            "Could not find a list of default configurations, will use: %s"
+            % (CONST_DEFAULT_MATCH_CONFIG_FILE)
+        )
+
+        for config_file in configs_list:
             if config_file == CONST_DEFAULT_MATCH_CONFIG_FILE:
                 config_file_name = config_file
                 break
+    else:
+        config_file_name = random.choice(configs_list)
 
     logging.info("For %s will use %s" % (current_day, config_file_name))
 
@@ -168,16 +196,17 @@ def run_tournament(tournament_id, num_games_per_match=10, no_sudo=False):
     with open(CONST_TOURNAMENT_FILE, "r") as file:
         matches = file.read().splitlines()
 
-    # get a match config file for the day
-    config_file_name = get_match_config_file()
-
-    if config_file_name is None:
-        return False, "Could not find a match config file."
-
     no_matches = len(matches)
     logging.info("The tournament will have %d match(es)" % (no_matches))
 
     for match_idx, match in enumerate(matches):
+
+        # get a match config file for the day
+        config_file_name = get_match_config_file()
+
+        if config_file_name is None:
+            print("Could not find a match config file.")
+            break
 
         logging.info("Running match %d/%d" % (match_idx + 1, no_matches))
 
