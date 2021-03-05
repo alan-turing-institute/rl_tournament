@@ -71,6 +71,13 @@ You should expect to receive your team's `token_name` and `token_value`.
 - So, in the example above, you would set
 ``AGENTS_PATH = /plark_ai_public/some/other/directories/``
 
+Note, if you want to build the image using one of the example agents, you will need to pull with git large file storage: 
+
+`git lfs pull`
+
+This may require you to install:
+
+`sudo apt-get install git-lfs`
 
 ### Building a Docker image with your agent
 
