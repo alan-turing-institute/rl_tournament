@@ -1,5 +1,3 @@
-pelican_latest
-panther_latest
 pelican_james_ea
 panther_move_north
 pelican_agent_any_size
