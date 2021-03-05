@@ -2,3 +2,5 @@ pelican_pnm
 panther_pnm
 pelican_tour1
 panther_tour1
+pelican_tour2
+panther_tour2
