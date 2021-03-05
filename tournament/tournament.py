@@ -107,7 +107,7 @@ def create_tournament():
     return tournament_id
 
 
-def get_match_config_file():
+def get_match_config_file(map_size="25x25"):
     """
     Looks for a config file depending on the curent day. If a match file
         for the current day cannot be found, a default will be used.
@@ -136,24 +136,27 @@ def get_match_config_file():
     sel_configs = []
 
     for config_file in configs_list:
-        if config_file.startswith(current_day):
+        if config_file.startswith(current_day) and map_size in config_file:
             sel_configs.append(config_file)
 
     logging.info(
-        "Total number of configs for the day: %d" % (len(sel_configs))
+        "Total number of configs (%s) for the day: %d"
+        % (map_size, len(sel_configs))
     )
 
     if len(sel_configs) == 0:
         logging.info(
-            "Could not find any configuration for today. Using default ones."
+            "Could not find any %s " % (map_size)
+            + "configuration for today. Using default ones."
         )
 
         for config_file in configs_list:
-            if config_file.startswith("default"):
+            if config_file.startswith("default") and map_size in config_file:
                 sel_configs.append(config_file)
 
         logging.info(
-            "Total number of default configs: %d" % (len(sel_configs))
+            "Total number of default %s configs: %d"
+            % (map_size, len(sel_configs))
         )
 
     if len(sel_configs) == 0:
@@ -174,7 +177,9 @@ def get_match_config_file():
     return config_file_name
 
 
-def run_tournament(tournament_id, num_games_per_match=10, no_sudo=False):
+def run_tournament(
+    tournament_id, num_games_per_match=10, map_size="25x25", no_sudo=False
+):
     """
     Runs the tournament by running multiple docker-compose files
 
@@ -202,7 +207,7 @@ def run_tournament(tournament_id, num_games_per_match=10, no_sudo=False):
     for match_idx, match in enumerate(matches):
 
         # get a match config file for the day
-        config_file_name = get_match_config_file()
+        config_file_name = get_match_config_file(map_size=map_size)
 
         if config_file_name is None:
             print("Could not find a match config file.")
@@ -327,14 +332,24 @@ if __name__ == "__main__":
         type=int,
         default=10,
     )
+    parser.add_argument(
+        "--map_size",
+        help="map size",
+        type=str,
+        default="25x25",
+        choices=["10x10", "25x25"],
+    )
     args = parser.parse_args()
 
     no_sudo = args.no_sudo if args.no_sudo else False
     num_games_per_match = args.num_games_per_match
+    map_size = args.map_size
 
     tid = create_tournament()
 
-    success, error = run_tournament(tid, num_games_per_match, no_sudo)
+    success, error = run_tournament(
+        tid, num_games_per_match, map_size, no_sudo
+    )
 
     clean_up()
 
