@@ -1,4 +1,1 @@
 pelican_james_ea
-panther_move_north
-pelican_agent_any_size
-panther_random_walk
