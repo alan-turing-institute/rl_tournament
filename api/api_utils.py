@@ -19,8 +19,12 @@ def create_response(orig_response):
 
 
 def list_teams(dbsession=session):
-    teams = dbsession.query(Team).all()
-    return [team.team_name for team in teams]
+    try:
+        teams = dbsession.query(Team).all()
+        return [team.team_name for team in teams]
+    except:
+        dbsession.rollback()
+        return []
 
 
 def list_agents(
@@ -29,13 +33,16 @@ def list_agents(
     """
     Return a list of agent names.
     """
-    agents_query = dbsession.query(Agent)
-
-    if agent_type != "all":
-        agents_query = agents_query.filter_by(agent_type=agent_type)
-    if team != "all":
-        agents_query = agents_query.filter(Agent.team.has(team_name=team))
-    agents = agents_query.all()
+    try:
+        agents_query = dbsession.query(Agent)
+        if agent_type != "all":
+            agents_query = agents_query.filter_by(agent_type=agent_type)
+        if team != "all":
+            agents_query = agents_query.filter(Agent.team.has(team_name=team))
+            agents = agents_query.all()
+    except:
+        dbsession.rollback()
+        return []
     if tournament != "all":
         agents = [a for a in agents if int(tournament) in \
                   [t.tournament_id for t in a.tournaments]]
@@ -43,7 +50,11 @@ def list_agents(
 
 
 def list_tournaments(dbsession=session):
-    tournaments = dbsession.query(Tournament).all()
+    try:
+        tournaments = dbsession.query(Tournament).all()
+    except:
+        dbsession.rollback()
+        return []
     return [
         {
             "tournament_id": t.tournament_id,
@@ -54,10 +65,14 @@ def list_tournaments(dbsession=session):
 
 
 def list_matches(tournament_id="all", dbsession=session):
-    matches_query = dbsession.query(Match)
-    if tournament_id != "all":
-        matches_query = matches_query.filter_by(tournament_id=tournament_id)
-    matches = matches_query.all()
+    try:
+        matches_query = dbsession.query(Match)
+        if tournament_id != "all":
+            matches_query = matches_query.filter_by(tournament_id=tournament_id)
+        matches = matches_query.all()
+    except:
+        dbsession.rollback()
+        return []
     return [
         {
             "match_id": m.match_id,
@@ -70,11 +85,15 @@ def list_matches(tournament_id="all", dbsession=session):
 
 
 def get_tournament(tournament_id, dbsession=session):
-    tournament = (
-        dbsession.query(Tournament)
-        .filter_by(tournament_id=tournament_id)
-        .first()
-    )
+    try:
+        tournament = (
+            dbsession.query(Tournament)
+            .filter_by(tournament_id=tournament_id)
+            .first()
+        )
+    except:
+        dbsession.rollback()
+        return {}
     if not tournament:
         return {}
     return {
@@ -97,20 +116,28 @@ def get_tournament(tournament_id, dbsession=session):
 
 
 def get_match_id(tournament_id, panther, pelican, dbsession=session):
-    match = (
-        dbsession.query(Match)
-        .filter_by(tournament_id=tournament_id)
-        .filter(Match.pelican_agent.has(agent_name=pelican))
-        .filter(Match.panther_agent.has(agent_name=panther))
-        .first()
-    )
+    try:
+        match = (
+            dbsession.query(Match)
+            .filter_by(tournament_id=tournament_id)
+            .filter(Match.pelican_agent.has(agent_name=pelican))
+            .filter(Match.panther_agent.has(agent_name=panther))
+            .first()
+        )
+    except:
+        dbsession.rollback()
+        return {}
     if not match:
         return {}
     return {"match_id": match.match_id}
 
 
 def get_match(match_id, dbsession=session):
-    match = dbsession.query(Match).filter_by(match_id=match_id).first()
+    try:
+        match = dbsession.query(Match).filter_by(match_id=match_id).first()
+    except:
+        dbsession.rollback()
+        return {}
     if not match:
         return {}
     return {
@@ -128,7 +155,11 @@ def get_match(match_id, dbsession=session):
 
 
 def get_game(game_id, dbsession=session):
-    game = dbsession.query(Game).filter_by(game_id=game_id).first()
+    try:
+        game = dbsession.query(Game).filter_by(game_id=game_id).first()
+    except:
+        dbsession.rollback()
+        return {}
     if not game:
         return {}
     return {
