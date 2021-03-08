@@ -306,7 +306,12 @@ def run_tournament(
             command = ["sudo"] + command
         subprocess.Popen(command)
 
-        while (time.time() - docker_st) < 1800:
+        if test_run:
+            time_limit = 120
+        else:
+            time_limit = 1800
+
+        while (time.time() - docker_st) < time_limit:
             if match_finished(match_id):
                 logging.info("Match took %d s." % (time.time() - docker_st))
                 break
