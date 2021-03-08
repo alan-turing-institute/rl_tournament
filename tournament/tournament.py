@@ -26,7 +26,7 @@ logging.basicConfig(
 
 # CONST_TEAMS_LIST = ["team_1",
 # "team_2", "team_3", "team_4", "team_5", "team_test"]
-CONST_TEAMS_LIST = ["team_test"]
+CONST_TEAMS_LIST = ["team_test","team_1","team_2", "team_3", "team_4"]
 CONST_GITHUB_ADDRESS = (
     "https://raw.githubusercontent.com/"
     + "alan-turing-institute/rl_tournament/main/teams/"
@@ -109,8 +109,9 @@ def create_tournament(test_run=False):
     else:
         for pelican in pelicans:
             for panther in panthers:
-
-                f.write("%s %s\n" % (pelican, panther))
+                # don't let agents from the same team play each other
+                if pelican.split(":")[0] != panther.split(":")[0]:
+                    f.write("%s %s\n" % (pelican, panther))
 
     f.close()
 
