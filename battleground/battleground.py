@@ -63,9 +63,13 @@ class Battleground():
     that the RabbitMQ queue is up, and both agents have sent a "ready" message.
     """
 
-    def __init__(self, match_id, dbsession=session, **kwargs):
+    def __init__(self, match_id, test=False, dbsession=session, **kwargs):
         self.activeGames = []
         self.numberOfActiveGames = 0
+        # if test is set to True, don't use the database
+        self.test = test
+        if self.test:
+            logger.info("RUNNING TEST MATCH WITHOUT DATABASE")
         match_id = int(match_id)
         # new logfile name for this match
         self.f_handler = RotatingFileHandler(
@@ -77,14 +81,21 @@ class Battleground():
         )
         self.f_handler.setFormatter(formatter)
         logger.addHandler(self.f_handler)
-        match = dbsession.query(Match).filter_by(match_id=match_id).first()
-        if not match:
-            raise RuntimeError(
-                "Could not find match {} in DB".format(match_id)
-            )
+
         self.match_id = match_id
-        self.num_games = match.num_games
-        self.config_file = match.game_config
+        if not test:
+            match = dbsession.query(Match).filter_by(match_id=match_id).first()
+            if not match:
+                raise RuntimeError(
+                    "Could not find match {} in DB".format(match_id)
+                )
+            self.num_games = match.num_games
+            self.config_file = match.game_config
+        else:
+            # use some default values
+            self.num_games = 10
+            self.config_file = "10x10_balanced.json"
+
         # see if we have established communication with the agents
         self.pelican_ready = False
         self.panther_ready = False
@@ -109,7 +120,7 @@ class Battleground():
     # Triggers the creation of a new game
     def create_battle(self, **kwargs):
 
-        gm = Battle(self.game_config, **kwargs)
+        gm = Battle(self.game_config, test=self.test, **kwargs)
         self.activeGames.append(gm)
         self.numberOfActiveGames = self.numberOfActiveGames + 1
         logger.info("Game Created")
@@ -223,16 +234,20 @@ class Battle(NewgameBase):
 
     """
 
-    def __init__(self, game_config, **kwargs):
+    def __init__(self, game_config, test=False, **kwargs):
         """
         constructor
 
         Arguments:
-            game_config -
+            game_config - dict containing game parameters
+            test - if True, don't use database
             kwargs -
         """
 
         super().__init__(game_config, **kwargs)
+
+        # if test is True, don't use the database to store Game details
+        self.test = test
 
         self.gamePlayerTurn = None
 
@@ -418,17 +433,22 @@ class Battle(NewgameBase):
         """
 
         logger.info("Battle begins!")
-        parent_match = (
-            dbsession.query(Match).filter_by(match_id=match_id).first()
-        )
-        if not parent_match:
-            raise RuntimeError(
-                "unable to find match with id {} in db".format(match_id)
+        # unless we are in test mode, create the Game entry in the db.
+        if not self.test:
+            parent_match = (
+                dbsession.query(Match).filter_by(match_id=match_id).first()
+            )
+            if not parent_match:
+                raise RuntimeError(
+                    "unable to find match with id {} in db".format(match_id)
             )
 
-        g = Game()
-        g.match = parent_match
-        g.game_time = datetime.datetime.now()
+            g = Game()
+            g.match = parent_match
+            g.game_time = datetime.datetime.now()
+        else:
+            g = None
+
         if video_file_path is not None:
             writer = imageio.get_writer(video_file_path, fps=VIDEO_FPS)
         else:
@@ -459,9 +479,9 @@ class Battle(NewgameBase):
             if state != "Running":
                 break
             num_turns += 1
-
-        g.num_turns = num_turns
-        g.result_code = state
+        if g:
+            g.num_turns = num_turns
+            g.result_code = state
         if writer is not None:
             writer.close()
         logger.info(
@@ -480,9 +500,10 @@ class Battle(NewgameBase):
             config["video_container_name"],
             video_filename,
         )
-        g.video_url = video_url
+        if g:
+            g.video_url = video_url
 
-        dbsession.add(g)
-        dbsession.commit()
+            dbsession.add(g)
+            dbsession.commit()
 
         return
