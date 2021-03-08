@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+  <meta charset="utf-8" />
+  <title>Welcome to Plark Tournament!</title>
+</head>
+<body>
+  <div>
+    <h2>Tournaments</h2>
+    <table>
+      {% for row in tournaments %}
+      <tr>
+	<td>{{ row.tournament_id }}</td><td><a href=tournament/{{ row.tournament_id }}>{{ row.tournament_time }}</a></td>
+      </tr>
+      {% endfor %}
+</table>
+</div>
+</body>
+</html>

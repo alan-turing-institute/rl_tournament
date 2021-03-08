@@ -20,14 +20,14 @@
       </tr>
       {% for row in games %}
       <tr>
-	<td>{{ row.game_id }}</td>
-	<td>{{ row.game_time }}
-	<td>{{ row.pelican }}
-	<td>{{ row.panther }}
-	<td>{{ row.num_turns }}</td>
-	<td>{{ row.result_code }}</td>
-	<td>{{ row.winner }}</td>
-	<td><a href={{ row.video }}>video</a> </td>
+	<td> {{ row.game_id }} </td>
+	<td> {{ row.game_time }} </td>
+	<td> {{ row.pelican }} </td>
+	<td> {{ row.panther }} </td>
+	<td> {{ row.num_turns }} </td>
+	<td> {{ row.result_code }} </td>
+	<td> {{ row.winner }} </td>
+	<td><a href={{ row.video }}> video </a> </td>
       </tr>
       {% endfor %}
 </table>
