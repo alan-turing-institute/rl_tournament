@@ -1,6 +1,10 @@
 pelican_latest
 panther_latest
 pelican_james_ea
-panther_move_north
-pelican_agent_any_size
 panther_random_walk
+pelican_agent_top_third_buoys
+pelican_agent_half_grid_buoys
+pelican_agent_bottom_third_buoys
+pelican_agent_any_size
+panther_agent_rand_opportunistic
+panther_agent_move_north
