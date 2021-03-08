@@ -25,8 +25,8 @@ services:
 
   pelican:
     container_name: pelican_agent
-    image: turingrldsg.azurecr.io/team_1:pelican_zoe
-#    image: turingrldsg.azurecr.io/team_test_1:pelican_latest
+    image: turingrldsg.azurecr.io/team_test_1:pelican_latest
+
     environment:
     - RABBITMQ_HOST=rabbitmq
     networks:
@@ -39,7 +39,7 @@ services:
 
   panther:
     container_name: panther_agent
-    image: turingrldsg.azurecr.io/team_test:panther_random_walk
+    image: turingrldsg.azurecr.io/team_test:panther_agent_move_north
     environment:
     - RABBITMQ_HOST=rabbitmq
     networks:
