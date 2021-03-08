@@ -57,7 +57,7 @@ def get_team_repository_tags(team_name):
     return tags
 
 
-def create_tournament():
+def create_tournament(test_run=False):
     """
     Creates a tournament file.
 
@@ -87,10 +87,30 @@ def create_tournament():
 
     f = open(CONST_TOURNAMENT_FILE, "w")
 
-    for pelican in pelicans:
-        for panther in panthers:
+    if test_run:
+        pel_size = len(pelicans)
+        pan_size = len(panthers)
+
+        max_size = max(pel_size, pan_size)
+
+        for i in range(max_size):
+            if i < pel_size:
+                pelican = pelicans[i]
+            else:
+                pelican = pelicans[pel_size - 1]
+
+            if i < pan_size:
+                panther = panthers[i]
+            else:
+                panther = panthers[pan_size - 1]
 
             f.write("%s %s\n" % (pelican, panther))
+
+    else:
+        for pelican in pelicans:
+            for panther in panthers:
+
+                f.write("%s %s\n" % (pelican, panther))
 
     f.close()
 
@@ -122,10 +142,6 @@ def get_match_config_file(map_size="25x25", day=None):
         current_day = date.today().strftime("%Y_%m_%d")
     else:
         current_day = day
-
-    print("*" * 100)
-    print(current_day)
-    print("*" * 100)
 
     logging.info("Looking for a config file for: %s" % (current_day))
 
@@ -190,6 +206,7 @@ def run_tournament(
     map_size="25x25",
     day=None,
     no_sudo=False,
+    test_run=False,
 ):
     """
     Runs the tournament by running multiple docker-compose files
@@ -361,14 +378,24 @@ if __name__ == "__main__":
         default=datetime.now().strftime("%Y-%m-%d"),
     )
 
+    parser.add_argument(
+        "--test_run",
+        help="Tournament test run",
+        action="store_true",
+    )
+
     args = parser.parse_args()
 
     no_sudo = args.no_sudo if args.no_sudo else False
     num_games_per_match = args.num_games_per_match
     map_size = args.map_size
     tour_day = args.day.strftime("%Y_%m_%d")
+    test_run = args.test_run
 
-    tid = create_tournament()
+    if test_run:
+        num_games_per_match = 1
+
+    tid = create_tournament(test_run=test_run)
 
     success, error = run_tournament(
         tid,
@@ -376,6 +403,7 @@ if __name__ == "__main__":
         map_size=map_size,
         day=tour_day,
         no_sudo=no_sudo,
+        test_run=test_run,
     )
 
     clean_up()
