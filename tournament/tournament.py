@@ -368,7 +368,6 @@ if __name__ == "__main__":
         help="map size",
         type=str,
         default="25x25",
-        choices=["10x10", "25x25"],
     )
 
     parser.add_argument(
