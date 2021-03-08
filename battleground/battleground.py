@@ -90,11 +90,16 @@ class Battleground():
         self.panther_ready = False
 
     def setup_games(self, **kwargs):
-
+        """
+        Create num_games Battle objects, with the chosen game_config
+        """
         self.game_config = read_json(
             blob_name=self.config_file,
             container_name=config["config_container_name"],
         )
+        # set a couple of parameters by hand to avoid problems
+        self.game_config["render_settings"]["output_view_all"] = False
+        self.game_config["game_settings"]["driving_agent"] = ""
 
         logger.info("Loaded game config {}".format(self.config_file))
         for i in range(self.num_games):
