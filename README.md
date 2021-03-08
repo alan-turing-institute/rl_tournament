@@ -89,6 +89,7 @@ This may require you to install:
   - If you are submitting a PELICAN agent, make sure that the docker image tag starts with `pelican_`, e.g. `pelican_latest`. Similarly, if you are submitting a PANTHER agent, make sure that the docker image tag starts with `panther_`, e.g. `panther_latest`.
 
   - It is important to keep track of the tags being used by the team. As you will see in the next step, each team can register multiple agents for each daily tournament. However, we would prefer to keep this number to be < 5 for each category, in order to ensure that all matches finish on time.
+  - **Important**  - for technical reasons, please make your docker tags lower-case only.
 
   > If you are using Unix/Mac, you might want to use the helper functions `make pelican_build` or `make panther_build` but make sure that you have the `RL_TEAM_ID` environmental variable set as your team's name. If you are not sure what it should be, please check with your facilitator. The format is "team_X" where X is your teams number, for example "team_1", "team_2", etc.
 
