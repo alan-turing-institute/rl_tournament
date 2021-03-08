@@ -196,7 +196,9 @@ class Battleground():
                 self.match_id, i, time.strftime("%Y-%m-%d_%H-%M-%S")
             )
             game.play(match_id=self.match_id, video_file_path=video_filename)
-        self.save_logfile()
+        # only put the logfile on azure if we're not in "test" mode
+        if not self.test:
+            self.save_logfile()
 
     def save_logfile(self):
         """
