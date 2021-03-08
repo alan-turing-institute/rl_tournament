@@ -18,6 +18,14 @@ app = Flask(__name__)
 @app.route("/")
 def homepage():
     """
+    basic homepage - list the interesting tournaments.
+    """
+    return render_template("index.html")
+
+
+@app.route("/tournaments")
+def tournaments():
+    """
     basic homepage - options to view results table or run a new test.
     """
     r = requests.get(BASE_URL+"/tournaments")
@@ -25,7 +33,7 @@ def homepage():
         raise RuntimeError("Couldn't reach API")
 
     tournaments = r.json()
-    return render_template("index.html", tournaments=tournaments,
+    return render_template("tournamentlist.html", tournaments=tournaments,
                            base_url=BASE_URL)
 
 
