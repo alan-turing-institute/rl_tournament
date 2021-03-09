@@ -40,9 +40,7 @@ def get_team_repository_tags(team_name):
     return tags
 
 
-def main(no_sudo):
-
-    registry_dst = os.environ.get("DEST_REPO")
+def login_src():
 
     # Logging in to the source repo
     command = [
@@ -59,11 +57,15 @@ def main(no_sudo):
         command = ["sudo"] + command
     subprocess.call(command)
 
+
+def login_dst():
+    registry_dst = os.environ.get("DEST_REPO")
+
     # Logging in to the destination repo
     command = [
         "docker",
         "login",
-        CONST_REGISTRY_SRC,
+        registry_dst,
         "-u",
         os.environ.get("DEST_TOKEN_NAME"),
         "-p",
@@ -73,6 +75,14 @@ def main(no_sudo):
     if not no_sudo:
         command = ["sudo"] + command
     subprocess.call(command)
+
+
+def main(no_sudo):
+
+    login_src()
+    login_dst()
+
+    registry_dst = os.environ.get("DEST_REPO")
 
     logging.info("Copying images")
 
