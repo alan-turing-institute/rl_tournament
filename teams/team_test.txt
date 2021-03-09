@@ -1,4 +1,3 @@
-pelican_james_ea
 panther_random_walk
 pelican_agent_top_third_buoys
 pelican_agent_half_grid_buoys
