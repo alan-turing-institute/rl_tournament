@@ -10,10 +10,14 @@ logging.basicConfig(
 )
 
 CONST_REGISTRY_SRC = "turingrldsg.azurecr.io"
-
-
-CONST_TEAMS_LIST = ["team_test"]
-
+CONST_TEAMS_LIST = [
+    "team_1",
+    "team_2",
+    "team_3",
+    "team_4",
+    "team_5",
+    "team_test",
+]
 CONST_GITHUB_ADDRESS = (
     "https://raw.githubusercontent.com/"
     + "alan-turing-institute/rl_tournament/main/teams/"
@@ -98,7 +102,7 @@ def main(no_sudo):
             image_src = "%s/%s:%s" % (CONST_REGISTRY_SRC, team, tag)
 
             logging.info("docker pull %s" % (image_src))
-            command = ["docker", "pull", "-q", image_src]
+            command = ["docker", "pull", image_src]
             if not no_sudo:
                 command = ["sudo"] + command
             subprocess.call(command)
@@ -113,7 +117,7 @@ def main(no_sudo):
 
             logging.info("docker push %s" % (image_dst))
 
-            command = ["docker", "push", "-q", image_dst]
+            command = ["docker", "push", image_dst]
             if not no_sudo:
                 command = ["sudo"] + command
             subprocess.call(command)
