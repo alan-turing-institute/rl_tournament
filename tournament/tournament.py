@@ -6,7 +6,7 @@ import subprocess
 import requests
 import argparse
 import logging
-from datetime import date
+from datetime import date, datetime
 import time
 import random
 
@@ -57,7 +57,7 @@ def get_team_repository_tags(team_name):
     return tags
 
 
-def create_tournament():
+def create_tournament(test_run=False):
     """
     Creates a tournament file.
 
@@ -87,10 +87,30 @@ def create_tournament():
 
     f = open(CONST_TOURNAMENT_FILE, "w")
 
-    for pelican in pelicans:
-        for panther in panthers:
+    if test_run:
+        pel_size = len(pelicans)
+        pan_size = len(panthers)
+
+        max_size = max(pel_size, pan_size)
+
+        for i in range(max_size):
+            if i < pel_size:
+                pelican = pelicans[i]
+            else:
+                pelican = pelicans[pel_size - 1]
+
+            if i < pan_size:
+                panther = panthers[i]
+            else:
+                panther = panthers[pan_size - 1]
 
             f.write("%s %s\n" % (pelican, panther))
+
+    else:
+        for pelican in pelicans:
+            for panther in panthers:
+
+                f.write("%s %s\n" % (pelican, panther))
 
     f.close()
 
@@ -107,7 +127,7 @@ def create_tournament():
     return tournament_id
 
 
-def get_match_config_file(map_size="25x25"):
+def get_match_config_file(map_size="25x25", day=None):
     """
     Looks for a config file depending on the curent day. If a match file
         for the current day cannot be found, a default will be used.
@@ -118,7 +138,10 @@ def get_match_config_file(map_size="25x25"):
 
     config_file_name = None
 
-    current_day = date.today().strftime("%Y_%m_%d")
+    if day is None:
+        current_day = date.today().strftime("%Y_%m_%d")
+    else:
+        current_day = day
 
     logging.info("Looking for a config file for: %s" % (current_day))
 
@@ -178,7 +201,12 @@ def get_match_config_file(map_size="25x25"):
 
 
 def run_tournament(
-    tournament_id, num_games_per_match=10, map_size="25x25", no_sudo=False
+    tournament_id,
+    num_games_per_match=10,
+    map_size="25x25",
+    day=None,
+    no_sudo=False,
+    test_run=False,
 ):
     """
     Runs the tournament by running multiple docker-compose files
@@ -207,7 +235,7 @@ def run_tournament(
     for match_idx, match in enumerate(matches):
 
         # get a match config file for the day
-        config_file_name = get_match_config_file(map_size=map_size)
+        config_file_name = get_match_config_file(map_size=map_size, day=day)
 
         if config_file_name is None:
             print("Could not find a match config file.")
@@ -278,7 +306,12 @@ def run_tournament(
             command = ["sudo"] + command
         subprocess.Popen(command)
 
-        while (time.time() - docker_st) < 1800:
+        if test_run:
+            time_limit = 120
+        else:
+            time_limit = 1800
+
+        while (time.time() - docker_st) < time_limit:
             if match_finished(match_id):
                 logging.info("Match took %d s." % (time.time() - docker_st))
                 break
@@ -318,6 +351,7 @@ def clean_up():
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="run a Plark tournament")
+
     parser.add_argument(
         "--no_sudo",
         help="""
@@ -326,29 +360,54 @@ if __name__ == "__main__":
                         """,
         action="store_true",
     )
+
     parser.add_argument(
         "--num_games_per_match",
         help="number of games per match",
         type=int,
         default=10,
     )
+
     parser.add_argument(
         "--map_size",
         help="map size",
         type=str,
         default="25x25",
-        choices=["10x10", "25x25"],
     )
+
+    parser.add_argument(
+        "--day",
+        help="tournament day, format YYYY-MM-DD",
+        type=lambda s: datetime.strptime(s, "%Y-%m-%d"),
+        default=datetime.now().strftime("%Y-%m-%d"),
+    )
+
+    parser.add_argument(
+        "--test_run",
+        help="Tournament test run",
+        action="store_true",
+    )
+
     args = parser.parse_args()
 
     no_sudo = args.no_sudo if args.no_sudo else False
     num_games_per_match = args.num_games_per_match
     map_size = args.map_size
+    tour_day = args.day.strftime("%Y_%m_%d")
+    test_run = args.test_run
 
-    tid = create_tournament()
+    if test_run:
+        num_games_per_match = 1
+
+    tid = create_tournament(test_run=test_run)
 
     success, error = run_tournament(
-        tid, num_games_per_match, map_size, no_sudo
+        tid,
+        num_games_per_match=num_games_per_match,
+        map_size=map_size,
+        day=tour_day,
+        no_sudo=no_sudo,
+        test_run=test_run,
     )
 
     clean_up()
