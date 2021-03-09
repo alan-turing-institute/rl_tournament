@@ -1,4 +1,4 @@
-## API endpoints for querying the Plark tournament DB
+# API endpoints for querying the Plark tournament DB
 
 Note that all the endpoints below follow the base URL, which would be:
 ```
@@ -10,16 +10,16 @@ https://<webapp_name>.azurewebsites.net
 ```
 if deploying as an Azure web app.
 
-### Endpoints:
+## Endpoints:
 
-*```/tournaments```*
-lists all the tournaments, returns
+### ```/tournaments```
+lists all the tournaments, returns:
 ```
 [ {"tournament_id": <id:int>, "tournament_time": <time:str>}, ... ]
 ```
 
-*```/tournaments/<tourn_id>```*
-info on tournament with id <tourn_id>, returns
+### ```/tournaments/<tourn_id>```
+info on tournament with id <tourn_id>, returns:
 ```
 {
   "tournament_id": <id:int>,
@@ -30,8 +30,8 @@ info on tournament with id <tourn_id>, returns
 }
 ```
 
-*```/matches/<match_id>```*
-info on match with id <match_id>, returns
+### ```/matches/<match_id>```
+info on match with id <match_id>, returns:
 ```
 {
   "match_id": <id:int>,
@@ -46,8 +46,8 @@ info on match with id <match_id>, returns
 }
 ```
 
-*```/games/<games_id>```*
-info on game with id <game_id>, returns
+### ```/games/<games_id>```
+info on game with id <game_id>, returns:
 ```
 {
   "game_id": <id:int>,
@@ -61,26 +61,26 @@ info on game with id <game_id>, returns
 }
 ```
 
-*```/teams```*
-list of all teams, returns
+### ```/teams```
+list of all teams, returns:
 ```
 [ <team_name>:str, ... ]
 ```
 
-*```/agents/<team_name>```*
-list of all agents for a given team, returns
+### ```/agents/<team_name>```
+list of all agents for a given team, returns:
 ```
 [ <agent_name>:str, ... ]
 ```
 
-*```/pelicans/<tournament_id>```*
+### ```/pelicans/<tournament_id>```
 list of all pelican agents for a given tournament_id, returns
 ```
 [ <agent_name>:str, ... ]
 ```
 
-*```/panthers/<tournament_id>```*
-list of all pelican agents for a given tournament_id, returns
+### ```/panthers/<tournament_id>```
+list of all pelican agents for a given tournament_id, returns:
 ```
 [ <agent_name>:str, ... ]
 ```
