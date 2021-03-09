@@ -88,7 +88,7 @@ def main(no_sudo):
             image_src = "%s/%s:%s" % (CONST_REGISTRY_SRC, team, tag)
 
             logging.info("docker pull %s" % (image_src))
-            command = ["docker", "pull", image_src]
+            command = ["docker", "pull", "-q", image_src]
             if not no_sudo:
                 command = ["sudo"] + command
             subprocess.Popen(command)
@@ -103,7 +103,7 @@ def main(no_sudo):
 
             logging.info("docker push %s" % (image_dst))
 
-            command = ["docker", "push", image_dst]
+            command = ["docker", "push", "-q", image_dst]
             if not no_sudo:
                 command = ["sudo"] + command
             subprocess.Popen(command)
