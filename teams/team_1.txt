@@ -1,3 +1,3 @@
-pelican_pedrocontinuum
-pelican_pedroscratch
-panther_zoemonday
+panther_zoe_small
+panther_zoe_large
+pelican_babyspice
