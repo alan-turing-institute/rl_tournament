@@ -127,7 +127,7 @@ def main(no_sudo):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="run a Plark tournament")
+    parser = argparse.ArgumentParser(description="copy docker images to a new registry")
 
     parser.add_argument(
         "--no_sudo",
