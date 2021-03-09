@@ -57,7 +57,7 @@ def main(no_sudo):
 
     if not no_sudo:
         command = ["sudo"] + command
-    subprocess.Popen(command)
+    subprocess.call(command)
 
     # Logging in to the destination repo
     command = [
@@ -72,7 +72,7 @@ def main(no_sudo):
 
     if not no_sudo:
         command = ["sudo"] + command
-    subprocess.Popen(command)
+    subprocess.call(command)
 
     logging.info("Copying images")
 
@@ -91,7 +91,7 @@ def main(no_sudo):
             command = ["docker", "pull", "-q", image_src]
             if not no_sudo:
                 command = ["sudo"] + command
-            subprocess.Popen(command)
+            subprocess.call(command)
 
             image_dst = "%s/%s:%s" % (registry_dst, team, tag)
 
@@ -99,14 +99,14 @@ def main(no_sudo):
             command = ["docker", "tag", image_src, image_dst]
             if not no_sudo:
                 command = ["sudo"] + command
-            subprocess.Popen(command)
+            subprocess.call(command)
 
             logging.info("docker push %s" % (image_dst))
 
             command = ["docker", "push", "-q", image_dst]
             if not no_sudo:
                 command = ["sudo"] + command
-            subprocess.Popen(command)
+            subprocess.call(command)
 
     logging.info("Finished")
 
