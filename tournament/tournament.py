@@ -377,7 +377,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--day",
-        help="tournament day",
+        help="tournament day, format YYYY-MM-DD",
         type=lambda s: datetime.strptime(s, "%Y-%m-%d"),
         default=datetime.now().strftime("%Y-%m-%d"),
     )
