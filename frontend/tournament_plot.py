@@ -18,7 +18,10 @@ def get_tournament_fig(data_dict):
     )
     fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
     fig.for_each_trace(lambda t: t.update(name=t.name.split("=")[-1]))
-    fig.for_each_annotation(lambda a: a.update(textangle=0) if "pelican" in a.text else a)
+    fig.for_each_annotation(lambda a: a.update(textangle=0) \
+                            if "pelican" in a.text else a)
+    fig.for_each_annotation(lambda a: a.update(textangle=-15) \
+                            if "panther" in a.text else a)
 
     # modify the layout, labels etc.
     fig.update_yaxes(visible=False)
@@ -31,7 +34,7 @@ def get_tournament_fig(data_dict):
             xanchor="auto",
             x=0.5
         ),
-        margin=dict(l=20, r=240, t=50, b=20)
+        margin=dict(l=20, r=240, t=90, b=20)
     )
     div = io.to_html(fig, full_html=False, include_plotlyjs=False)
     return div
