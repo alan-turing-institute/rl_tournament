@@ -21,7 +21,9 @@ def create_response(orig_response):
 def list_teams(dbsession=session):
     try:
         teams = dbsession.query(Team).all()
-        return [team.team_name for team in teams]
+        team_names = [team.team_name for team in teams]
+        dbsession.expunge_all()
+        return team_names
     except:
         dbsession.rollback()
         return []
@@ -46,7 +48,9 @@ def list_agents(
     if tournament != "all":
         agents = [a for a in agents if int(tournament) in \
                   [t.tournament_id for t in a.tournaments]]
-    return [agent.agent_name for agent in agents]
+    agent_names = [agent.agent_name for agent in agents]
+    dbsession.expunge_all()
+    return agent_names
 
 
 def list_tournaments(dbsession=session):
@@ -55,13 +59,15 @@ def list_tournaments(dbsession=session):
     except:
         dbsession.rollback()
         return []
-    return [
+    tournament_list = [
         {
             "tournament_id": t.tournament_id,
             "tournament_time": t.tournament_time.isoformat().split(".")[0],
         }
         for t in tournaments
     ]
+    dbsession.expunge_all()
+    return tournament_list
 
 
 def list_matches(tournament_id="all", dbsession=session):
@@ -73,7 +79,7 @@ def list_matches(tournament_id="all", dbsession=session):
     except:
         dbsession.rollback()
         return []
-    return [
+    match_list = [
         {
             "match_id": m.match_id,
             "match_time": m.match_time.isoformat().split(".")[0],
@@ -82,6 +88,8 @@ def list_matches(tournament_id="all", dbsession=session):
         }
         for m in matches
     ]
+    dbsession.expunge_all()
+    return match_list
 
 
 def get_tournament(tournament_id, dbsession=session):
@@ -96,7 +104,7 @@ def get_tournament(tournament_id, dbsession=session):
         return {}
     if not tournament:
         return {}
-    return {
+    tournament_info = {
         "tournament_id": tournament.tournament_id,
         "tournament_time": tournament.tournament_time.isoformat().split(".")[
             0
@@ -113,6 +121,8 @@ def get_tournament(tournament_id, dbsession=session):
         ],
         "matches": [m.match_id for m in tournament.matches],
     }
+    dbsession.expunge_all()
+    return tournament_info
 
 
 def get_match_id(tournament_id, panther, pelican, dbsession=session):
@@ -129,7 +139,9 @@ def get_match_id(tournament_id, panther, pelican, dbsession=session):
         return {}
     if not match:
         return {}
-    return {"match_id": match.match_id}
+    match_id = match.match_id
+    dbsession.expunge_all()
+    return {"match_id": match_id}
 
 
 def get_match(match_id, dbsession=session):
@@ -140,7 +152,7 @@ def get_match(match_id, dbsession=session):
         return {}
     if not match:
         return {}
-    return {
+    match_info = {
         "match_id": match.match_id,
         "match_time": match.match_time.isoformat().split(".")[0],
         "pelican": match.pelican_agent.agent_name,
@@ -152,6 +164,8 @@ def get_match(match_id, dbsession=session):
         "winner": match.winning_agent.agent_name if match.winning_agent else "Tie",
         "games": [g.game_id for g in match.games],
     }
+    dbsession.expunge_all()
+    return match_info
 
 
 def get_game(game_id, dbsession=session):
@@ -162,7 +176,7 @@ def get_game(game_id, dbsession=session):
         return {}
     if not game:
         return {}
-    return {
+    game_info = {
         "game_id": game.game_id,
         "game_time": game.game_time.isoformat().split(".")[0],
         "pelican": game.match.pelican_agent.agent_name,
@@ -172,3 +186,5 @@ def get_game(game_id, dbsession=session):
         "result_code": game.result_code,
         "winner": game.winner,
     }
+    dbsession.expunge_all()
+    return game_info
