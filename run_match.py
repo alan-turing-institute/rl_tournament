@@ -11,7 +11,17 @@ if __name__ == "__main__":
         raise RuntimeError("MATCH_ID not found in environment")
     match_id = os.environ["MATCH_ID"]
 
-    bg = Battleground(match_id=match_id, test=test)
+    arg_dict = {"match_id": match_id, "test": test}
+
+    if "NUM_GAMES" in os.environ.keys():
+        num_games = int(os.environ["NUM_GAMES"])
+        arg_dict["num_games"] = num_games
+
+    if "CONFIG_FILE" in os.environ.keys():
+        config_file = os.environ["CONFIG_FILE"]
+        arg_dict["config_file"] = config_file
+
+    bg = Battleground(**arg_dict)
 
     bg.setup_games()
     bg.listen_for_ready()

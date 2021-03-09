@@ -25,8 +25,15 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 
-
-from .db_config import DB_CONNECTION_STRING
+db_config_found = False
+try:
+    from .db_config import DB_CONNECTION_STRING
+    db_config_found = True
+except KeyError:
+    print("""
+          Unable to import db config.
+          This is expected if running in test mode.
+          """)
 
 Base = declarative_base()
 
@@ -193,14 +200,17 @@ class Game(Base):
         # look up based on result code
         return win_codes[self.result_code]
 
+if db_config_found:
+    engine = create_engine(DB_CONNECTION_STRING)
 
-engine = create_engine(DB_CONNECTION_STRING)
+    Base.metadata.create_all(engine)
+    # Bind the engine to the metadata of the Base class so that the
+    # declaratives can be accessed through a DBSession instance
+    Base.metadata.bind = engine
 
-Base.metadata.create_all(engine)
-# Bind the engine to the metadata of the Base class so that the
-# declaratives can be accessed through a DBSession instance
-Base.metadata.bind = engine
-
-DBSession = sessionmaker(bind=engine, autoflush=False)
-# global database session used by default throughout the package
-session = DBSession()
+    DBSession = sessionmaker(bind=engine, autoflush=False)
+    # global database session used by default throughout the package
+    session = DBSession()
+else:
+    engine = None
+    session = None

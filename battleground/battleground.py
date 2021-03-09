@@ -29,7 +29,13 @@ from battleground.serialization import serialize_state
 from battleground.schema import Match, Game, session
 
 from battleground.azure_utils import write_file_to_blob, read_json
-from battleground.azure_config import config
+try:
+    from battleground.azure_config import config
+except KeyError:
+    print("""
+          Unable to read Azure config.
+          This is expected when running in test mode.
+          """)
 
 # configure the logger
 logger = logging.getLogger("battleground_logger")
@@ -70,6 +76,7 @@ class Battleground():
         self.test = test
         if self.test:
             logger.info("RUNNING TEST MATCH WITHOUT DATABASE")
+
         match_id = int(match_id)
         # new logfile name for this match
         self.f_handler = RotatingFileHandler(
@@ -92,10 +99,20 @@ class Battleground():
             self.num_games = match.num_games
             self.config_file = match.game_config
         else:
-            # use some default values
-            self.num_games = 10
-            self.config_file = "10x10_balanced.json"
-
+            # if not in kwargs, use some default values
+            if "num_games" in kwargs.keys():
+                self.num_games = kwargs["num_games"]
+            else:
+                self.num_games = 10
+            if "config_file" in kwargs.keys():
+                self.config_file = kwargs["config_file"]
+            else:
+                self.config_file = "10x10_balanced.json"
+            logger.info("Will run {} games using config {}".format(
+                self.num_games,
+                self.config_file
+                )
+            )
         # see if we have established communication with the agents
         self.pelican_ready = False
         self.panther_ready = False
@@ -104,10 +121,15 @@ class Battleground():
         """
         Create num_games Battle objects, with the chosen game_config
         """
-        self.game_config = read_json(
-            blob_name=self.config_file,
-            container_name=config["config_container_name"],
-        )
+        if self.test:
+            # read config file from local filesystem
+            self.game_config = json.load(open(self.config_file))
+        else:
+            # read config from Azure blob storage
+            self.game_config = read_json(
+                blob_name=self.config_file,
+                container_name=config["config_container_name"],
+            )
         # set a couple of parameters by hand to avoid problems
         self.game_config["render_settings"]["output_view_all"] = False
         self.game_config["game_settings"]["driving_agent"] = ""
@@ -191,14 +213,21 @@ class Battleground():
 
     def play(self):
         print("In play - will do {} games".format(len(self.activeGames)))
+        results = []
         for i, game in enumerate(self.activeGames):
             video_filename = "match_{}_game_{}_{}.mp4".format(
                 self.match_id, i, time.strftime("%Y-%m-%d_%H-%M-%S")
             )
-            game.play(match_id=self.match_id, video_file_path=video_filename)
+            result_code = game.play(
+                match_id=self.match_id,
+                video_file_path=video_filename
+            )
+            results.append(result_code)
         # only put the logfile on azure if we're not in "test" mode
         if not self.test:
             self.save_logfile()
+        logger.info("Result codes from all games: {}".format(results))
+        logger.info("Match finished.")
 
     def save_logfile(self):
         """
@@ -481,31 +510,34 @@ class Battle(NewgameBase):
             if state != "Running":
                 break
             num_turns += 1
-        if g:
-            g.num_turns = num_turns
-            g.result_code = state
+            # end of game
+
         if writer is not None:
             writer.close()
-        logger.info(
-            "Saving video to {}/{}".format(
-                config["video_container_name"],
-                os.path.basename(video_file_path),
+        if not self.test:
+            g.num_turns = num_turns
+            g.result_code = state
+            # if not in test mode, write video file to blob storage
+            logger.info(
+                "Saving video to {}/{}".format(
+                    config["video_container_name"],
+                    os.path.basename(video_file_path),
+                )
             )
-        )
-        video_filename = os.path.basename(video_file_path)
-        write_file_to_blob(
-            video_file_path, video_filename, config["video_container_name"]
-        )
-        logger.info("Battle finished.")
-        video_url = make_az_url(
-            config["storage_account_name"],
-            config["video_container_name"],
-            video_filename,
-        )
-        if g:
-            g.video_url = video_url
+            video_filename = os.path.basename(video_file_path)
+            write_file_to_blob(
+                video_file_path, video_filename, config["video_container_name"]
+            )
 
+            video_url = make_az_url(
+                config["storage_account_name"],
+                config["video_container_name"],
+                video_filename,
+            )
+            # and save the video url to db
+            g.video_url = video_url
+            # finally commit changes to the db.
             dbsession.add(g)
             dbsession.commit()
-
-        return
+        logger.info("Battle finished.")
+        return state

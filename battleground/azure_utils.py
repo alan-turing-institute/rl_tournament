@@ -6,7 +6,14 @@ from azure.storage.blob import (
 )
 from azure.common import AzureMissingResourceHttpError
 
-from battleground.azure_config import config
+try:
+    from battleground.azure_config import config
+except KeyError:
+    print("""
+    Couldn't read Azure config parameters from environment.
+    This is expected if running in a test docker container.
+    """)
+    pass
 
 
 def check_container_exists(container_name, bbs=None):
