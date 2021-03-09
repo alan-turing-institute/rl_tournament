@@ -1,3 +1,2 @@
-panther_pnm_mix
-pelican_pnm_mix
+
 
