@@ -11,13 +11,13 @@ services:
 
   battleground:
     container_name: plark_battleground
-    image: turingrldsg0308.azurecr.io/battleground:test_no_db
+    image: turingrldsg0309.azurecr.io/battleground:test_no_db
     environment:
     - RABBITMQ_HOST=rabbitmq
     - MATCH_ID=0
     - NO_DB_TEST=True
-    - CONFIG_FILE=/rl_tournament/2021_03_08_01_26x33_03_07_30_12.json
-    - NUM_GAMES=10
+    - CONFIG_FILE=/rl_tournament/2021_03_09_06_28x26_02_08_24_13.json
+    - NUM_GAMES=1
     networks:
     - plark_nw
     tty: true
@@ -27,8 +27,7 @@ services:
 
   pelican:
     container_name: pelican_agent
-    image: turingrldsg.azurecr.io/team_test:pelican_agent_any_size
-
+    image: turingrldsg0309.azurecr.io/team_test:pelican_agent_any_size
     environment:
     - RABBITMQ_HOST=rabbitmq
     networks:
@@ -41,7 +40,7 @@ services:
 
   panther:
     container_name: panther_agent
-    image: turingrldsg.azurecr.io/team_test:panther_agent_move_north
+    image: turingrldsg0309.azurecr.io/team_test:panther_agent_move_north
     environment:
     - RABBITMQ_HOST=rabbitmq
     networks:
