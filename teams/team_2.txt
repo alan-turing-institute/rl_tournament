@@ -1,2 +1,7 @@
-panther_test
-pelican_test
+pelican_10x10_shp
+pelican_10x10_shp2
+panther_pnm_10x10_wed
+pelican_pnm_10x10_wed
+pelican_28x28_shp
+panther_pnm_large_web
+pelican_pnm_large_web
