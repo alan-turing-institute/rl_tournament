@@ -36,6 +36,8 @@ CONST_TOURNAMENT_FILE = "/tmp/tournament.txt"
 CONST_TEMP_DOCKER_COMPOSE = "/tmp/docker-compose.yml"
 CONST_DEFAULT_MATCH_CONFIG_FILE = "10x10_balanced.json"
 
+CONST_DEFAULT_MAP_SIZE = "10x10"
+
 
 def get_team_repository_tags(team_name):
     """
@@ -57,11 +59,16 @@ def get_team_repository_tags(team_name):
     return tags
 
 
-def create_tournament(test_run=False):
+def create_tournament(test_run=False, map_size=CONST_DEFAULT_MAP_SIZE):
     """
     Creates a tournament file.
 
     """
+
+    if map_size == CONST_DEFAULT_MAP_SIZE:
+        small_tournament = True
+    else:
+        small_tournament = False
 
     logging.info("Preparing for the tournament")
 
@@ -74,10 +81,20 @@ def create_tournament(test_run=False):
         tags = get_team_repository_tags(team)
         if len(tags) > 0:
             for tag in tags:
-                if "pelican" in tag:
-                    pelicans.append("%s:%s" % (team, tag))
-                elif "panther" in tag:
-                    panthers.append("%s:%s" % (team, tag))
+
+                # - all agents go in the small tournament
+                # - agents with "10x10" in the tag go in the 10x10 tournament
+                #   but not the big grid one.
+                if not small_tournament and CONST_DEFAULT_MAP_SIZE in tag:
+                    add = False
+                else:
+                    add = True
+
+                if add:
+                    if "pelican" in tag:
+                        pelicans.append("%s:%s" % (team, tag))
+                    elif "panther" in tag:
+                        panthers.append("%s:%s" % (team, tag))
 
     pelicans = list(set(pelicans))
     panthers = list(set(panthers))
@@ -128,7 +145,7 @@ def create_tournament(test_run=False):
     return tournament_id
 
 
-def get_match_config_file(map_size="25x25", day=None):
+def get_match_config_file(map_size=CONST_DEFAULT_MAP_SIZE, day=None):
     """
     Looks for a config file depending on the curent day. If a match file
         for the current day cannot be found, a default will be used.
@@ -204,7 +221,7 @@ def get_match_config_file(map_size="25x25", day=None):
 def run_tournament(
     tournament_id,
     num_games_per_match=10,
-    map_size="25x25",
+    map_size=CONST_DEFAULT_MAP_SIZE,
     day=None,
     no_sudo=False,
     test_run=False,
@@ -376,7 +393,7 @@ if __name__ == "__main__":
         "--map_size",
         help="map size",
         type=str,
-        default="25x25",
+        default=CONST_DEFAULT_MAP_SIZE,
     )
 
     parser.add_argument(
@@ -422,7 +439,7 @@ if __name__ == "__main__":
     else:
         # create a new tournament using CONST_TEAMS_LIST and the txt files
         # in the repo, in the normal way
-        tid = create_tournament(test_run=test_run)
+        tid = create_tournament(test_run=test_run, map_size=map_size)
 
     success, error = run_tournament(
         tid,
