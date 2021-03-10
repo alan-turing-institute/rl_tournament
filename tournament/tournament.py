@@ -326,6 +326,7 @@ def run_tournament(
         if not no_sudo:
             command = ["sudo"] + command
         subprocess.run(command)
+        time.sleep(3)
         # run this again, to make sure we remove the network
         subprocess.run(command)
         logging.info(
