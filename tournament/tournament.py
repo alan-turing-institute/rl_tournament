@@ -109,8 +109,9 @@ def create_tournament(test_run=False):
     else:
         for pelican in pelicans:
             for panther in panthers:
-
-                f.write("%s %s\n" % (pelican, panther))
+                # don't let agents from the same team play each other
+                if pelican.split(":")[0] != panther.split(":")[0]:
+                    f.write("%s %s\n" % (pelican, panther))
 
     f.close()
 
@@ -325,6 +326,9 @@ def run_tournament(
         if not no_sudo:
             command = ["sudo"] + command
         subprocess.run(command)
+        time.sleep(3)
+        # run this again, to make sure we remove the network
+        subprocess.run(command)
         logging.info(
             "docker-compose down took %d s." % (time.time() - docker_st)
         )
@@ -383,6 +387,17 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        "--tournament_id",
+        help="""
+        To retry a tournament, specify its ID here.
+        Note that to only retry the last part of a tournament,
+        you should edit /tmp/tournament.txt to only contain the
+        matches you want to run.
+        """,
+        type=int,
+    )
+
+    parser.add_argument(
         "--test_run",
         help="Tournament test run",
         action="store_true",
@@ -399,7 +414,15 @@ if __name__ == "__main__":
     if test_run:
         num_games_per_match = 1
 
-    tid = create_tournament(test_run=test_run)
+    # If we already have a tournament_id (i.e. we're retrying one)
+    # Note that this will use /tmp/tournament.txt - this needs to
+    # be edited if we only want to run e.g. the last part of a tournament
+    if args.tournament_id:
+        tid = args.tournament_id
+    else:
+        # create a new tournament using CONST_TEAMS_LIST and the txt files
+        # in the repo, in the normal way
+        tid = create_tournament(test_run=test_run)
 
     success, error = run_tournament(
         tid,
