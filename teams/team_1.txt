@@ -1,3 +1,5 @@
-panther_zoe_small
-panther_zoe_large
-pelican_babyspice
+panther_blind
+pelican_okish_spice
+pelican_old_spice
+pelican_scary_spice
+pelican_salty_spice
