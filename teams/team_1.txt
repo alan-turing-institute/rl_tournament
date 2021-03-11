@@ -1,5 +1,4 @@
-panther_blind
-pelican_okish_spice
-pelican_old_spice
-pelican_scary_spice
-pelican_salty_spice
+pelican_pedro_small
+pelican_pedro_large
+panther_mowgli
+panther_bagheera
