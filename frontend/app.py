@@ -13,7 +13,58 @@ from tournament_plot import get_tournament_fig
 
 BASE_URL = os.environ["API_BASE_URL"]
 
+CACHE_DIR = "data"
+
+
 app = Flask(__name__)
+
+
+def get_data(data_type, data_id):
+    """
+    Retrieve match or game data, either from cache or from API.
+    If retrieving for the first time, and it is complete, cache it.
+
+    Parameters:
+    ===========
+    data_type: str, must be "matches" or "games"
+    data_id: int, match_id or game_id
+    """
+    filepath = os.path.join(CACHE_DIR,"{}_{}.json".format(data_type,data_id))
+    if not os.path.exists(filepath):
+        # retrieve from API
+        url = BASE_URL+"/{}/{}".format(data_type, data_id)
+        r = requests.get(url)
+        if r.status_code is not 200:
+            raise RuntimeError("Couldn't reach API {}".format(url))
+        data = r.json()
+        if is_data_complete(data, data_type):
+            # cache the data in a json file
+            os.makedirs(CACHE_DIR, exist_ok=True)
+            with open(filepath, "w") as output_json:
+                json.dump(data, output_json)
+        else:
+            print("Data is not complete")
+        return data
+    else:
+        # cached data already exists
+        data = json.load(open(filepath))
+        return data
+
+
+def is_data_complete(data_dict, data_type):
+    """
+    data_type must be 'matches' or 'games'
+    """
+    if data_type == "games":
+        return len(data_dict) > 0
+    elif data_type == "matches":
+        return data_dict["panther_score"] \
+            + data_dict["pelican_score"] \
+            == data_dict["num_games"]
+    else:
+        return False
+
+
 
 @app.route("/")
 def homepage():
@@ -57,11 +108,7 @@ def tournament(tid):
     # loop over all the matches in the tournament
     matches = []
     for mid in match_ids:
-        url = BASE_URL+"/matches/{}".format(mid)
-        r = requests.get(url)
-        if r.status_code is not 200:
-            raise RuntimeError("Couldn't reach API {}".format(url))
-        match_data = r.json()
+        match_data = get_data("matches", mid)
         for _ in range(2):
             panther_agents.append(match_data["panther"])
             pelican_agents.append(match_data["pelican"])
@@ -101,11 +148,8 @@ def match(mid):
     game_ids = r.json()["games"]
     games = []
     for gid in game_ids:
-        url = BASE_URL+"/games/{}".format(gid)
-        r = requests.get(url)
-        if r.status_code is not 200:
-            raise RuntimeError("Couldn't reach API {}".format(url))
-        games.append(r.json())
+        game_data = get_data("games", gid)
+        games.append(game_data)
     return render_template(
         "match.html", mid=mid,
         games=games

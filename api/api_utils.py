@@ -159,6 +159,7 @@ def get_match(match_id, dbsession=session):
         "panther": match.panther_agent.agent_name,
         "logfile": match.logfile_url,
         "config": match.game_config,
+        "num_games": match.num_games,
         "panther_score": match.score("panther"),
         "pelican_score": match.score("pelican"),
         "winner": match.winning_agent.agent_name if match.winning_agent else "Tie",
